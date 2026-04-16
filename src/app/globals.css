@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --rose: #C97C8A;
+  --dark: #1a0a0f;
+  --gold: #C9A040;
+  --blush: #FAD8E9;
+  --cream: #FDF6F0;
+  --muted: #7a5c65;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--dark);
+  background: #fff;
+}
+
+.font-serif { font-family: 'Cormorant Garamond', serif; }
+
+/* Slider fill color */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--rose);
+  cursor: grab;
+}
+
+/* Verified badge */
+.badge-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #e8f7ef;
+  color: #1a7a4a;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+/* Checklist strike-through animation */
+.item-booked {
+  text-decoration: line-through;
+  color: #aaa;
+  transition: all 0.3s ease;
+}
