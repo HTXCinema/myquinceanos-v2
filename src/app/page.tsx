@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Nav from '@/components/layout/Nav'
 import Footer from '@/components/layout/Footer'
+import { createClient } from '@/lib/supabase'
 
 const CATEGORIES = [
   { name: 'Venues & Ballrooms', count: 18, slug: 'venues', span2: true },
@@ -26,13 +27,23 @@ const CAT_COLORS = [
   'linear-gradient(145deg,#152530 0%,#356070 100%)',
 ]
 
-const FEATURED_VENDORS = [
-  { name: 'DreamLite Productions', cat: 'Photography & Video', rating: 5.0, reviews: 52, price: 2800, perk: 'Free 1-hr engagement session', bg: 'linear-gradient(155deg,#3d1520 0%,#7a3545 55%,#c07080 100%)' },
-  { name: 'Bell Tower on 34th', cat: 'Venues', rating: 4.9, reviews: 53, price: 5500, perk: 'Free venue lighting upgrade', bg: 'linear-gradient(155deg,#1d1030 0%,#5a3575 55%,#9570a5 100%)' },
-  { name: 'Cabrera Photography', cat: 'Photography', rating: 4.7, reviews: 31, price: 1500, perk: 'Free closing waltz highlight edit', bg: 'linear-gradient(155deg,#152025 0%,#355060 55%,#658090 100%)' },
-  { name: 'Ikonik Dancers & DJ', cat: 'DJs & Entertainment', rating: 5.0, reviews: 28, price: 1200, perk: 'Free hora loca add-on', bg: 'linear-gradient(155deg,#252010 0%,#706030 55%,#a09060 100%)' },
-  { name: "Goyita's Catering", cat: 'Catering', rating: 4.8, reviews: 41, price: 3200, perk: 'Complimentary tasting for 4', bg: 'linear-gradient(155deg,#1a2510 0%,#4a6030 55%,#7a9050 100%)' },
-  { name: 'Bella Luxe Events', cat: 'Decor & Flowers', rating: 4.9, reviews: 37, price: 2100, perk: 'Free centerpiece upgrade', bg: 'linear-gradient(155deg,#301520 0%,#704050 55%,#b07080 100%)' },
+const CAT_BG_COLORS = [
+  'linear-gradient(155deg,#3d1520 0%,#7a3545 55%,#c07080 100%)',
+  'linear-gradient(155deg,#1d1030 0%,#5a3575 55%,#9570a5 100%)',
+  'linear-gradient(155deg,#152025 0%,#355060 55%,#658090 100%)',
+  'linear-gradient(155deg,#252010 0%,#706030 55%,#a09060 100%)',
+  'linear-gradient(155deg,#1a2510 0%,#4a6030 55%,#7a9050 100%)',
+  'linear-gradient(155deg,#301520 0%,#704050 55%,#b07080 100%)',
+]
+
+// Fallback vendors shown until real featured vendors exist in DB
+const FALLBACK_VENDORS = [
+  { id: '', slug: '', business_name: 'DreamLite Productions', categories: { name: 'Photography & Video' }, avg_rating: 5.0, review_count: 52, starting_price: 2800, myquince_perk: 'Free 1-hr engagement session', cover_photo_url: '', tier: 'featured' },
+  { id: '', slug: '', business_name: 'Bell Tower on 34th', categories: { name: 'Venues' }, avg_rating: 4.9, review_count: 53, starting_price: 5500, myquince_perk: 'Free venue lighting upgrade', cover_photo_url: '', tier: 'featured' },
+  { id: '', slug: '', business_name: 'Cabrera Photography', categories: { name: 'Photography' }, avg_rating: 4.7, review_count: 31, starting_price: 1500, myquince_perk: 'Free closing waltz highlight edit', cover_photo_url: '', tier: 'featured' },
+  { id: '', slug: '', business_name: 'Ikonik Dancers & DJ', categories: { name: 'DJs & Entertainment' }, avg_rating: 5.0, review_count: 28, starting_price: 1200, myquince_perk: 'Free hora loca add-on', cover_photo_url: '', tier: 'featured' },
+  { id: '', slug: '', business_name: "Goyita's Catering", categories: { name: 'Catering' }, avg_rating: 4.8, review_count: 41, starting_price: 3200, myquince_perk: 'Complimentary tasting for 4', cover_photo_url: '', tier: 'featured' },
+  { id: '', slug: '', business_name: 'Bella Luxe Events', categories: { name: 'Decor & Flowers' }, avg_rating: 4.9, review_count: 37, starting_price: 2100, myquince_perk: 'Free centerpiece upgrade', cover_photo_url: '', tier: 'featured' },
 ]
 
 const REVIEWS = [
@@ -64,37 +75,51 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 }
 
 export default function HomePage() {
+  const [featuredVendors, setFeaturedVendors] = useState<any[]>(FALLBACK_VENDORS)
   const [carouselIdx, setCarouselIdx] = useState(0)
   const carouselRef = useRef<NodeJS.Timeout | null>(null)
+  const supabase = createClient()
 
-  // carousel auto-rotate
+  // Load featured vendors from Supabase
   useEffect(() => {
-    carouselRef.current = setInterval(() => {
-      setCarouselIdx(i => (i + 1) % FEATURED_VENDORS.length)
-    }, 4000)
-    return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
+    async function loadFeatured() {
+      const { data } = await supabase
+        .from('vendors')
+        .select('id, slug, business_name, categories(name), avg_rating, review_count, starting_price, myquince_perk, cover_photo_url, tier')
+        .in('tier', ['featured', 'premier'])
+        .eq('is_active', true)
+        .order('tier', { ascending: false }) // premier first, then featured
+        .limit(9)
+      if (data && data.length > 0) setFeaturedVendors(data)
+    }
+    loadFeatured()
   }, [])
 
-  // budget calculator — pure vanilla JS, zero React involvement
+  // Carousel auto-rotate
+  useEffect(() => {
+    carouselRef.current = setInterval(() => {
+      setCarouselIdx(i => (i + 1) % featuredVendors.length)
+    }, 4000)
+    return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
+  }, [featuredVendors.length])
+
+  // Budget calculator — pure vanilla JS
   useEffect(() => {
     const mount = document.getElementById('calc-mount')
     if (!mount) return
 
     const amts: Record<string, number> = Object.fromEntries(SLIDERS.map(s => [s.key, s.init]))
     let total = SLIDERS.reduce((a, s) => a + s.init, 0)
-
     const f = (n: number) => '$' + Math.round(n).toLocaleString()
 
     function render() {
       const disp = document.getElementById('calc-total-display')
       if (disp) disp.textContent = f(total)
-
       const tsl = document.getElementById('vsl-total') as HTMLInputElement | null
       if (tsl) {
         tsl.value = String(total)
         tsl.style.background = `linear-gradient(to right,#C9A040 ${((total-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%)`
       }
-
       SLIDERS.forEach(s => {
         const sl = document.getElementById('vsl-' + s.key) as HTMLInputElement | null
         const av = document.getElementById('vav-' + s.key)
@@ -107,18 +132,10 @@ export default function HomePage() {
         av.textContent = f(amts[s.key])
         pv.textContent = Math.round(fp) + '%'
       })
-
       document.querySelectorAll<HTMLElement>('.calc-preset').forEach(b => {
         const v = parseInt(b.dataset.val || '0')
-        if (v === total) {
-          b.style.background = 'rgba(201,160,64,.18)'
-          b.style.borderColor = '#C9A040'
-          b.style.color = '#C9A040'
-        } else {
-          b.style.background = 'transparent'
-          b.style.borderColor = 'rgba(255,255,255,.18)'
-          b.style.color = 'rgba(250,216,233,.5)'
-        }
+        if (v === total) { b.style.background = 'rgba(201,160,64,.18)'; b.style.borderColor = '#C9A040'; b.style.color = '#C9A040' }
+        else { b.style.background = 'transparent'; b.style.borderColor = 'rgba(255,255,255,.18)'; b.style.color = 'rgba(250,216,233,.5)' }
       })
     }
 
@@ -128,9 +145,6 @@ export default function HomePage() {
       total = newTotal
       render()
     }
-
-    const disp = document.getElementById('calc-total-display')
-if (disp) disp.textContent = f(total)
 
     function onCat(key: string, val: number) {
       const diff = val - amts[key]
@@ -153,7 +167,7 @@ if (disp) disp.textContent = f(total)
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
         <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">Total Budget</span>
         <input id="vsl-total" type="range" min="5000" max="50000" step="500" value="${total}" style="flex:1;accent-color:#C9A040;background:linear-gradient(to right,#C9A040 ${((total-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
-        <span id="<span id="vav-total" ...>${f(total)}</span>" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(total)}</span>
+        <span id="vav-total" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(total)}</span>
       </div>
       <div style="height:0.5px;background:rgba(255,255,255,.08);margin:10px 0 14px"></div>
       <div style="display:flex;flex-direction:column;gap:10px">
@@ -175,30 +189,21 @@ if (disp) disp.textContent = f(total)
     document.getElementById('vsl-total')?.addEventListener('input', e => {
       scaleAll(Number((e.target as HTMLInputElement).value))
     })
-
-    const tLabel = document.getElementById('vav-total')
-if (tLabel) tLabel.textContent = f(total)
-
     SLIDERS.forEach(s => {
       document.getElementById('vsl-' + s.key)?.addEventListener('input', e => {
         onCat(s.key, Number((e.target as HTMLInputElement).value))
       })
     })
-
     document.querySelectorAll('.calc-preset').forEach(b => {
-      b.addEventListener('click', () => {
-        scaleAll(parseInt((b as HTMLElement).dataset.val || '0'))
-      })
+      b.addEventListener('click', () => scaleAll(parseInt((b as HTMLElement).dataset.val || '0')))
     })
   }, [])
 
-  const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
-
-  const visibleVendors = [
-    FEATURED_VENDORS[carouselIdx % FEATURED_VENDORS.length],
-    FEATURED_VENDORS[(carouselIdx + 1) % FEATURED_VENDORS.length],
-    FEATURED_VENDORS[(carouselIdx + 2) % FEATURED_VENDORS.length],
-  ]
+  const visibleVendors = featuredVendors.length >= 3 ? [
+    featuredVendors[carouselIdx % featuredVendors.length],
+    featuredVendors[(carouselIdx + 1) % featuredVendors.length],
+    featuredVendors[(carouselIdx + 2) % featuredVendors.length],
+  ] : featuredVendors
 
   return (
     <>
@@ -268,7 +273,7 @@ if (tLabel) tLabel.textContent = f(total)
           {[
             { label: 'Planning Timeline', sub: '12-Month Timeline', desc: 'Step-by-step checklist from booking your venue to the morning of the event. Never miss a deadline.', href: '/planning', color: 'linear-gradient(160deg,#2a1520 0%,#7a4055 60%,#c08090 100%)' },
             { label: 'Budget Calculator', sub: 'Live Budget Slider', desc: 'Drag the sliders below — watch your budget split across every category in real time.', href: '#calculator', color: 'linear-gradient(160deg,#152025 0%,#355060 55%,#6090a0 100%)' },
-            { label: 'Saved Vendor List', sub: 'Save Your Favorites', desc: 'Bookmark vendors, add notes, compare quotes. Sign in to save and track everything.', href: '/planning#saved', color: 'linear-gradient(160deg,#251830 0%,#604575 60%,#9070a0 100%)' },
+            { label: 'Saved Vendor List', sub: 'Save Your Favorites', desc: 'Bookmark vendors, add notes, compare quotes. Sign in to save and track everything.', href: '/planning', color: 'linear-gradient(160deg,#251830 0%,#604575 60%,#9070a0 100%)' },
           ].map(t => (
             <Link key={t.label} href={t.href} style={{ borderRadius: 16, overflow: 'hidden', border: '0.5px solid rgba(201,124,138,.18)', textDecoration: 'none', display: 'block' }}>
               <div style={{ height: 160, background: t.color, position: 'relative', display: 'flex', alignItems: 'flex-end', padding: 14 }}>
@@ -307,48 +312,63 @@ if (tLabel) tLabel.textContent = f(total)
             <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, lineHeight: 1.15 }}>Houston vendors families love</h2>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button onClick={() => { setCarouselIdx(i => (i - 1 + FEATURED_VENDORS.length) % FEATURED_VENDORS.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
+            <button onClick={() => { setCarouselIdx(i => (i - 1 + featuredVendors.length) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
               style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="9,2 4,7 9,12" /></svg>
             </button>
-            <button onClick={() => { setCarouselIdx(i => (i + 1) % FEATURED_VENDORS.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
+            <button onClick={() => { setCarouselIdx(i => (i + 1) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
               style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="5,2 10,7 5,12" /></svg>
             </button>
-            <Link href="/vendors" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all 127 →</Link>
+            <Link href="/vendors?tier=featured" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all featured →</Link>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
-          {FEATURED_VENDORS.map((_, i) => (
+          {featuredVendors.map((_, i) => (
             <button key={i} onClick={() => setCarouselIdx(i)}
               style={{ width: i === carouselIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === carouselIdx ? '#C97C8A' : 'rgba(201,124,138,.3)', border: 'none', cursor: 'pointer', transition: 'all 0.3s' }} />
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
-          {visibleVendors.map((v, i) => (
-            <div key={i} style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 16, overflow: 'hidden', cursor: 'pointer' }}>
-              <div style={{ height: 200, background: v.bg, position: 'relative' }}>
-                <div style={{ position: 'absolute', top: 10, right: 10, background: '#C9A040', color: '#1a0a0f', fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20 }}>Featured</div>
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(201,160,64,.9)', padding: '7px 12px' }}>
-                  <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(26,10,15,.6)', fontWeight: 600 }}>MyQuince Perk</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: '#1a0a0f' }}>{v.perk}</div>
+          {visibleVendors.map((v, i) => {
+            const catName = (v.categories as any)?.name || ''
+            const bg = v.cover_photo_url
+              ? undefined
+              : CAT_BG_COLORS[i % CAT_BG_COLORS.length]
+            const profileLink = v.slug ? `/vendors/${v.slug}` : '/vendors'
+            return (
+              <Link key={v.id || i} href={profileLink} style={{ textDecoration: 'none', background: '#fff', border: `0.5px solid ${v.tier === 'premier' ? 'rgba(201,160,64,.4)' : 'rgba(201,124,138,.18)'}`, borderRadius: 16, overflow: 'hidden', display: 'block' }}>
+                <div style={{ height: 200, background: bg, backgroundImage: v.cover_photo_url ? `url(${v.cover_photo_url})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 10, right: 10, background: v.tier === 'premier' ? 'linear-gradient(135deg,#C9A040,#e8c96a)' : '#C9A040', color: '#1a0a0f', fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20 }}>
+                    {v.tier === 'premier' ? '⭐ Premier' : 'Featured'}
+                  </div>
+                  {v.myquince_perk && (
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(201,160,64,.9)', padding: '7px 12px' }}>
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(26,10,15,.6)', fontWeight: 600 }}>MyQuince Perk</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#1a0a0f' }}>{v.myquince_perk}</div>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div style={{ padding: '14px 16px' }}>
-                <div style={{ fontSize: 10.5, color: '#C97C8A', fontWeight: 600, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 3 }}>{v.cat}</div>
-                <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 5 }}>{v.name}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 5 }}>
-                  <Stars rating={v.rating} />
-                  <span style={{ fontSize: 11.5, color: '#7a5c65', marginLeft: 4 }}>{v.rating} ({v.reviews} reviews)</span>
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ fontSize: 10.5, color: '#C97C8A', fontWeight: 600, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 3 }}>{catName}</div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: '#1a0a0f', marginBottom: 5 }}>{v.business_name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 5 }}>
+                    <Stars rating={v.avg_rating || 0} />
+                    <span style={{ fontSize: 11.5, color: '#7a5c65', marginLeft: 4 }}>
+                      {v.avg_rating > 0 ? `${v.avg_rating} (${v.review_count} reviews)` : 'No reviews yet'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: '#7a5c65' }}>
+                    {v.starting_price ? <>Starting at <strong style={{ color: '#1a0a0f', fontWeight: 500 }}>${Number(v.starting_price).toLocaleString()}</strong></> : 'Contact for pricing'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, fontSize: 11, color: '#1a7a4a', fontWeight: 500 }}>
+                    <div style={{ width: 5, height: 5, background: '#1a7a4a', borderRadius: '50%' }} />
+                    Mom-verified reviews
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: '#7a5c65' }}>Starting at <strong style={{ color: '#1a0a0f', fontWeight: 500 }}>${v.price.toLocaleString()}</strong></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, fontSize: 11, color: '#1a7a4a', fontWeight: 500 }}>
-                  <div style={{ width: 5, height: 5, background: '#1a7a4a', borderRadius: '50%' }} />
-                  Mom-verified reviews
-                </div>
-              </div>
-            </div>
-          ))}
+              </Link>
+            )
+          })}
         </div>
       </section>
 
