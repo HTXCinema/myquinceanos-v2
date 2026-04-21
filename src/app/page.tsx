@@ -64,24 +64,13 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 }
 
 export default function HomePage() {
- function syncDOM() {
-  const t = totalRef.current
-  SLIDERS.forEach(s => {
-    const el = document.getElementById('csl-' + s.key) as HTMLInputElement | null
-    if (!el) return
-    el.max = String(t)
-    el.value = String(amtsRef.current[s.key])
-    const fp = (amtsRef.current[s.key] / t * 100).toFixed(1)
-    el.style.background = `linear-gradient(to right, ${s.color} ${fp}%, rgba(255,255,255,.1) 0%)`
-  })
-  const tsl = document.getElementById('total-sl') as HTMLInputElement | null
-  if (tsl) {
-    tsl.value = String(t)
-    const tp = ((t - 5000) / 45000 * 100).toFixed(1)
-    tsl.style.background = `linear-gradient(to right, #C9A040 ${tp}%, rgba(255,255,255,.1) 0%)`
-  }
-  setTick(n => n + 1)
-}
+  const amtsRef = useRef<Record<string, number>>(
+    Object.fromEntries(SLIDERS.map(s => [s.key, s.init]))
+  )
+  const totalRef = useRef(SLIDERS.reduce((a, s) => a + s.init, 0))
+  const [tick, setTick] = useState(0)
+  const [carouselIdx, setCarouselIdx] = useState(0)
+  const carouselRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     carouselRef.current = setInterval(() => {
@@ -94,8 +83,6 @@ export default function HomePage() {
 
   function syncDOM() {
     const t = totalRef.current
-    settotalRef.current(t)
-    setDisplayAmts({ ...amtsRef.current })
     SLIDERS.forEach(s => {
       const el = document.getElementById('csl-' + s.key) as HTMLInputElement | null
       if (!el) return
@@ -110,34 +97,30 @@ export default function HomePage() {
       const tp = ((t - 5000) / 45000 * 100).toFixed(1)
       tsl.style.background = `linear-gradient(to right, #C9A040 ${tp}%, rgba(255,255,255,.1) 0%)`
     }
+    setTick(n => n + 1)
   }
 
-function scaleToTotal(newTotal: number) {
-  const oldTotal = totalRef.current
-  const ratio = newTotal / oldTotal
-  SLIDERS.forEach(s => {
-    amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio)
-  })
-  totalRef.current = newTotal
-  syncDOM()
-}
+  function scaleToTotal(newTotal: number) {
+    const ratio = newTotal / totalRef.current
+    SLIDERS.forEach(s => {
+      amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio)
+    })
+    totalRef.current = newTotal
+    syncDOM()
+  }
 
-function onCatChange(key: string, val: number) {
-  const oldVal = amtsRef.current[key]
-  const diff = val - oldVal
-  const otherKeys = SLIDERS.map(s => s.key).filter(k => k !== key)
-  const otherTotal = otherKeys.reduce((a, k) => a + amtsRef.current[k], 0)
-
-  // Redistribute the difference across all other categories proportionally
-  otherKeys.forEach(k => {
-    const share = otherTotal > 0 ? amtsRef.current[k] / otherTotal : 1 / otherKeys.length
-    amtsRef.current[k] = Math.max(0, Math.round(amtsRef.current[k] - diff * share))
-  })
-
-  amtsRef.current[key] = val
-  // Total stays locked — don't touch totalRef.current
-  syncDOM()
-}
+  function onCatChange(key: string, val: number) {
+    const oldVal = amtsRef.current[key]
+    const diff = val - oldVal
+    const otherKeys = SLIDERS.map(s => s.key).filter(k => k !== key)
+    const otherTotal = otherKeys.reduce((a, k) => a + amtsRef.current[k], 0)
+    otherKeys.forEach(k => {
+      const share = otherTotal > 0 ? amtsRef.current[k] / otherTotal : 1 / otherKeys.length
+      amtsRef.current[k] = Math.max(0, Math.round(amtsRef.current[k] - diff * share))
+    })
+    amtsRef.current[key] = val
+    syncDOM()
+  }
 
   const visibleVendors = [
     FEATURED_VENDORS[carouselIdx % FEATURED_VENDORS.length],
@@ -268,7 +251,7 @@ function onCatChange(key: string, val: number) {
 
           <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
 
-          {/* Category sliders */}
+          {/* Category sliders — keyed to tick so they re-render after syncDOM */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {SLIDERS.map(s => {
               const amt = amtsRef.current[s.key]
@@ -291,7 +274,7 @@ function onCatChange(key: string, val: number) {
           </div>
 
           <div style={{ marginTop: 14, fontSize: 12, textAlign: 'center', padding: 8, borderRadius: 8, background: 'rgba(93,202,165,.1)', color: '#5DCAA5' }}>
-            ✓ Drag any category slider to customize — or tap a preset above
+            {tick >= 0 && '✓ Drag any category slider to customize — or tap a preset above'}
           </div>
         </div>
       </section>
