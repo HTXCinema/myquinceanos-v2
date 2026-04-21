@@ -94,7 +94,7 @@ export default function HomePage() {
 
   function syncDOM() {
     const t = totalRef.current
-    setDisplayTotal(t)
+    settotalRef.current(t)
     setDisplayAmts({ ...amtsRef.current })
     SLIDERS.forEach(s => {
       const el = document.getElementById('csl-' + s.key) as HTMLInputElement | null
@@ -237,7 +237,7 @@ function onCatChange(key: string, val: number) {
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
-              <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(displayTotal)}</div>
+              <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(totalRef.current)}</div>
             </div>
           </div>
 
@@ -246,9 +246,9 @@ function onCatChange(key: string, val: number) {
             {[8000, 12000, 18500, 25000, 35000].map(preset => (
               <button key={preset} onClick={() => scaleToTotal(preset)} style={{
                 padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                background: displayTotal === preset ? 'rgba(201,160,64,.18)' : 'transparent',
-                border: `0.5px solid ${displayTotal === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
-                color: displayTotal === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
+                background: totalRef.current === preset ? 'rgba(201,160,64,.18)' : 'transparent',
+                border: `0.5px solid ${totalRef.current === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
+                color: totalRef.current === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
               }}>{fmt(preset)}</button>
             ))}
           </div>
@@ -263,7 +263,7 @@ function onCatChange(key: string, val: number) {
               onChange={e => scaleToTotal(Number(e.target.value))}
               style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((totalRef.current - 5000) / 45000) * 100}%, rgba(255,255,255,.1) 0%)` }}
             />
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(displayTotal)}</span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(totalRef.current)}</span>
           </div>
 
           <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
@@ -271,14 +271,14 @@ function onCatChange(key: string, val: number) {
           {/* Category sliders */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {SLIDERS.map(s => {
-              const amt = displayAmts[s.key]
-              const fillPct = (amt / displayTotal * 100).toFixed(1)
+              const amt = amtsRef.current[s.key]
+              const fillPct = (amt / totalRef.current * 100).toFixed(1)
               return (
                 <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
                   <input
                     id={'csl-' + s.key}
-                    type="range" min={0} max={displayTotal} step={50}
+                    type="range" min={0} max={totalRef.current} step={50}
                     defaultValue={s.init}
                     onChange={e => onCatChange(s.key, Number(e.target.value))}
                     style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }}
