@@ -64,34 +64,24 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 }
 
 export default function HomePage() {
-  const [total, setTotal] = useState(18500)
-  const [pcts, setPcts] = useState<Record<string, number>>(
-    Object.fromEntries(SLIDERS.map(s => [s.key, s.pct]))
-  )
-  const [carouselIdx, setCarouselIdx] = useState(0)
-  const carouselRef = useRef<NodeJS.Timeout | null>(null)
+ const [amounts, setAmounts] = useState<Record<string, number>>({
+  venue: 4810, photo: 3145, cater: 3885, dj: 1850,
+  dress: 1665, decor: 1295, makeup: 925, other: 925
+})
 
-  // Auto-rotate carousel
-  useEffect(() => {
-    carouselRef.current = setInterval(() => {
-      setCarouselIdx(i => (i + 2) % FEATURED_VENDORS.length)
-    }, 4000)
-    return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
-  }, [])
+const total = Object.values(amounts).reduce((a, b) => a + b, 0)
+const [carouselIdx, setCarouselIdx] = useState(0)
+const carouselRef = useRef<NodeJS.Timeout | null>(null)
 
-  const visibleVendors = [
-    FEATURED_VENDORS[carouselIdx % FEATURED_VENDORS.length],
-    FEATURED_VENDORS[(carouselIdx + 1) % FEATURED_VENDORS.length],
-    FEATURED_VENDORS[(carouselIdx + 2) % FEATURED_VENDORS.length],
-  ]
+const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
 
-  const sumPct = Object.values(pcts).reduce((a, b) => a + b, 0)
-  const amounts = Object.fromEntries(
-    SLIDERS.map(s => [s.key, Math.round((pcts[s.key] / sumPct) * total)])
-  )
-  const allocated = Object.values(amounts).reduce((a, b) => a + b, 0)
-  const remaining = total - allocated
-
+function scaleToTotal(newTotal: number) {
+  const currentTotal = Object.values(amounts).reduce((a, b) => a + b, 0)
+  const ratio = newTotal / currentTotal
+  setAmounts(prev => Object.fromEntries(
+    Object.entries(prev).map(([k, v]) => [k, Math.round(v * ratio)])
+  ))
+}
   const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
 
   return (
@@ -177,18 +167,64 @@ export default function HomePage() {
           ))}
         </div>
 
-    {/* LIVE BUDGET CALCULATOR */}
+{/* LIVE BUDGET CALCULATOR */}
 <div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
     <div>
       <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
-      <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Drag any slider — everything adjusts automatically</p>
+      <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
     </div>
     <div style={{ textAlign: 'right' }}>
       <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
       <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(total)}</div>
     </div>
   </div>
+
+  {/* Presets */}
+  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+    {[8000, 12000, 18500, 25000, 35000].map(preset => (
+      <button key={preset} onClick={() => scaleToTotal(preset)} style={{
+        padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+        background: total === preset ? 'rgba(201,160,64,.18)' : 'transparent',
+        border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
+        color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
+      }}>{fmt(preset)}</button>
+    ))}
+  </div>
+
+  {/* Total slider */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+    <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
+    <input type="range" min={5000} max={50000} step={500} value={total}
+      onChange={e => scaleToTotal(Number(e.target.value))}
+      style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total-5000)/(50000-5000))*100}%, rgba(255,255,255,.1) 0%)` }} />
+    <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(total)}</span>
+  </div>
+
+  <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
+
+  {/* Category sliders */}
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    {SLIDERS.map(s => {
+      const amt = amounts[s.key]
+      const fillPct = (amt / total) * 100
+      return (
+        <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
+          <input type="range" min={0} max={total} step={50} value={amt}
+            onChange={e => setAmounts(prev => ({ ...prev, [s.key]: Number(e.target.value) }))}
+            style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }} />
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(amt)}</span>
+          <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 38, textAlign: 'right' }}>{Math.round(fillPct)}%</span>
+        </div>
+      )
+    })}
+  </div>
+
+  <div style={{ marginTop: 14, fontSize: 12, textAlign: 'center', padding: 8, borderRadius: 8, background: 'rgba(93,202,165,.1)', color: '#5DCAA5' }}>
+    ✓ Drag any category slider to customize — or tap a preset above
+  </div>
+</div>
 
   {/* Presets */}
   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
