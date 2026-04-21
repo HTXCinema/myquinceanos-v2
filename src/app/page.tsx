@@ -100,7 +100,7 @@ export default function HomePage() {
         const av = document.getElementById('vav-' + s.key)
         const pv = document.getElementById('vpv-' + s.key)
         if (!sl || !av || !pv) return
-        sl.max = String(total)
+        sl.max = String(Math.round(total * 0.6))
         sl.value = String(amts[s.key])
         const fp = amts[s.key] / total * 100
         sl.style.background = `linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%)`
@@ -158,7 +158,7 @@ export default function HomePage() {
           const fp = amts[s.key] / total * 100
           return `<div style="display:flex;align-items:center;gap:12px">
             <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">${s.label}</span>
-            <input id="vsl-${s.key}" type="range" min="0" max="${total}" step="50" value="${amts[s.key]}" style="flex:1;accent-color:${s.color};background:linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
+            <input id="vsl-${s.key}" type="range" min="0" max="${Math.round(total * 0.6)}" step="50" value="${amts[s.key]}" style="flex:1;accent-color:${s.color};background:linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
             <span id="vav-${s.key}" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(amts[s.key])}</span>
             <span id="vpv-${s.key}" style="font-size:11px;color:rgba(250,216,233,.35);width:38px;text-align:right">${Math.round(fp)}%</span>
           </div>`
