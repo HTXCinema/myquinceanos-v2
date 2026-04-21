@@ -102,17 +102,30 @@ export default function HomePage() {
     }
   }
 
-  function scaleToTotal(newTotal: number) {
-    const ratio = newTotal / totalRef.current
-    SLIDERS.forEach(s => {
-      amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio)
-    })
-    totalRef.current = newTotal
-    syncDOM()
-  }
+function scaleToTotal(newTotal: number) {
+  const oldTotal = totalRef.current
+  const ratio = newTotal / oldTotal
+  SLIDERS.forEach(s => {
+    amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio)
+  })
+  totalRef.current = newTotal
+  syncDOM()
+}
 
- function onCatChange(key: string, val: number) {
+function onCatChange(key: string, val: number) {
+  const oldVal = amtsRef.current[key]
+  const diff = val - oldVal
+  const otherKeys = SLIDERS.map(s => s.key).filter(k => k !== key)
+  const otherTotal = otherKeys.reduce((a, k) => a + amtsRef.current[k], 0)
+
+  // Redistribute the difference across all other categories proportionally
+  otherKeys.forEach(k => {
+    const share = otherTotal > 0 ? amtsRef.current[k] / otherTotal : 1 / otherKeys.length
+    amtsRef.current[k] = Math.max(0, Math.round(amtsRef.current[k] - diff * share))
+  })
+
   amtsRef.current[key] = val
+  // Total stays locked — don't touch totalRef.current
   syncDOM()
 }
 
