@@ -1,5 +1,5 @@
 export type UserRole = 'mom' | 'vendor' | 'admin'
-export type VendorTier = 'free' | 'verified' | 'featured'
+export type VendorTier = 'free' | 'verified' | 'featured' | 'premier'
 export type ReviewStatus = 'pending' | 'published' | 'rejected' | 'flagged'
 
 export interface Profile {
