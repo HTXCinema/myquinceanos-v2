@@ -190,14 +190,23 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Total slider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-            <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 100, flexShrink: 0 }}>Total Budget</span>
-            <input type="range" min={5000} max={50000} step={500} value={total}
-              onChange={e => setTotal(Number(e.target.value))}
-              style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total-5000)/(50000-5000))*100}%, rgba(255,255,255,.1) 0%)` }} />
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 56, textAlign: 'right' }}>{fmt(total)}</span>
-          </div>
+        {/* Budget presets */}
+<div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+  {[8000, 12000, 18500, 25000, 35000].map(preset => (
+    <button key={preset} onClick={() => setTotal(preset)}
+      style={{ padding: '5px 14px', borderRadius: 20, border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.15)'}`, background: total === preset ? 'rgba(201,160,64,.15)' : 'transparent', color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)', fontSize: 12, cursor: 'pointer' }}>
+      {fmt(preset)}
+    </button>
+  ))}
+</div>
+{/* Total slider */}
+<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+  <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 100, flexShrink: 0 }}>Total Budget</span>
+  <input type="range" min={5000} max={50000} step={500} value={total}
+    onChange={e => setTotal(Number(e.target.value))}
+    style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total-5000)/(50000-5000))*100}%, rgba(255,255,255,.1) 0%)` }} />
+  <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 56, textAlign: 'right' }}>{fmt(total)}</span>
+</div>
 
           <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0' }} />
 
@@ -283,7 +292,7 @@ export default function HomePage() {
       </section>
 
       {/* CATEGORIES */}
-      <section style={{ padding: '48px 28px', background: '#1a0a0f' }}>
+      <section style={{ padding: '48px 28px', background: '#0f0608' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: 'rgba(250,216,233,.6)', marginBottom: 8 }}>Browse by Category</div>
@@ -308,7 +317,7 @@ export default function HomePage() {
       </section>
 
       {/* REVIEWS */}
-      <section style={{ background: '#fff', padding: '52px 28px' }}>
+      <section style={{ background: '#1a0a0f', padding: '52px 28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 8 }}>Verified Reviews</div>
