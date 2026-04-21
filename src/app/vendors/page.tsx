@@ -215,7 +215,7 @@ export default function VendorsPage() {
                         {v.starting_price ? <>Starting at <strong style={{ color: '#1a0a0f', fontWeight: 500 }}>${Number(v.starting_price).toLocaleString()}</strong></> : 'Contact for pricing'}
                       </div>
                       {/* Tier-gated info */}
-                      {['featured','premier'].includes(v.tier) && v.website_url && (
+                      {(['featured','premier'] as string[]).includes(v.tier) && v.website_url && (
                         <div style={{ marginTop: 6, fontSize: 11, color: '#C97C8A', fontWeight: 500 }}>🌐 Website available</div>
                       )}
                       {v.is_verified && (
