@@ -79,6 +79,122 @@ export default function HomePage() {
     return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
   }, [])
 
+  useEffect(() => {
+  const mount = document.getElementById('calc-mount')
+  if (!mount) return
+
+  const fmt2 = (n: number) => '$' + Math.round(n).toLocaleString()
+
+  function render() {
+    const t = totalRef.current
+    const totalDisplay = document.getElementById('calc-total-display')
+    if (totalDisplay) totalDisplay.textContent = fmt2(t)
+
+    SLIDERS.forEach(s => {
+      const sl = document.getElementById('vsl-' + s.key) as HTMLInputElement | null
+      const av = document.getElementById('vav-' + s.key)
+      const pv = document.getElementById('vpv-' + s.key)
+      if (!sl || !av || !pv) return
+      sl.max = String(t)
+      sl.value = String(amtsRef.current[s.key])
+      const fp = (amtsRef.current[s.key] / t * 100)
+      sl.style.background = `linear-gradient(to right, ${s.color} ${fp.toFixed(1)}%, rgba(255,255,255,.1) 0%)`
+      av.textContent = fmt2(amtsRef.current[s.key])
+      pv.textContent = Math.round(fp) + '%'
+    })
+
+    const tsl = document.getElementById('vsl-total') as HTMLInputElement | null
+    if (tsl) {
+      tsl.value = String(t)
+      const tp = ((t - 5000) / 45000 * 100)
+      tsl.style.background = `linear-gradient(to right, #C9A040 ${tp.toFixed(1)}%, rgba(255,255,255,.1) 0%)`
+    }
+
+    document.querySelectorAll('.calc-preset').forEach(b => {
+      const el = b as HTMLElement
+      const v = parseInt(el.dataset.val || '0')
+      if (v === t) {
+        el.style.background = 'rgba(201,160,64,.18)'
+        el.style.borderColor = '#C9A040'
+        el.style.color = '#C9A040'
+      } else {
+        el.style.background = 'transparent'
+        el.style.borderColor = 'rgba(255,255,255,.18)'
+        el.style.color = 'rgba(250,216,233,.5)'
+      }
+    })
+  }
+
+  function scaleAll(newTotal: number) {
+    const ratio = newTotal / totalRef.current
+    SLIDERS.forEach(s => { amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio) })
+    totalRef.current = newTotal
+    render()
+  }
+
+  function onCat(key: string, val: number) {
+    const diff = val - amtsRef.current[key]
+    const others = SLIDERS.map(s => s.key).filter(k => k !== key)
+    const otherSum = others.reduce((a, k) => a + amtsRef.current[k], 0)
+    others.forEach(k => {
+      const share = otherSum > 0 ? amtsRef.current[k] / otherSum : 1 / others.length
+      amtsRef.current[k] = Math.max(0, Math.round(amtsRef.current[k] - diff * share))
+    })
+    amtsRef.current[key] = val
+    render()
+  }
+
+  const t = totalRef.current
+
+  mount.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      ${[8000,12000,18500,25000,35000].map(p => `
+        <button class="calc-preset" data-val="${p}" style="padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;background:${t===p?'rgba(201,160,64,.18)':'transparent'};border:0.5px solid ${t===p?'#C9A040':'rgba(255,255,255,.18)'};color:${t===p?'#C9A040':'rgba(250,216,233,.5)'}">${fmt2(p)}</button>
+      `).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+      <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">Total Budget</span>
+      <input id="vsl-total" type="range" min="5000" max="50000" step="500" value="${t}"
+        style="flex:1;accent-color:#C9A040;background:linear-gradient(to right,#C9A040 ${((t-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
+      <span style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${fmt2(t)}</span>
+    </div>
+    <div style="height:0.5px;background:rgba(255,255,255,.08);margin:10px 0 14px"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${SLIDERS.map(s => {
+        const amt = amtsRef.current[s.key]
+        const fp = (amt / t * 100)
+        return `
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">${s.label}</span>
+            <input id="vsl-${s.key}" type="range" min="0" max="${t}" step="50" value="${amt}"
+              style="flex:1;accent-color:${s.color};background:linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
+            <span id="vav-${s.key}" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${fmt2(amt)}</span>
+            <span id="vpv-${s.key}" style="font-size:11px;color:rgba(250,216,233,.35);width:38px;text-align:right">${Math.round(fp)}%</span>
+          </div>`
+      }).join('')}
+    </div>
+    <div style="margin-top:14px;font-size:12px;text-align:center;padding:8px;border-radius:8px;background:rgba(93,202,165,.1);color:#5DCAA5">
+      ✓ Drag any category slider to customize — or tap a preset above
+    </div>
+  `
+
+  document.getElementById('vsl-total')?.addEventListener('input', e => {
+    scaleAll(Number((e.target as HTMLInputElement).value))
+  })
+
+  SLIDERS.forEach(s => {
+    document.getElementById('vsl-' + s.key)?.addEventListener('input', e => {
+      onCat(s.key, Number((e.target as HTMLInputElement).value))
+    })
+  })
+
+  document.querySelectorAll('.calc-preset').forEach(b => {
+    b.addEventListener('click', () => {
+      scaleAll(parseInt((b as HTMLElement).dataset.val || '0'))
+    })
+  })
+}, [])
+
   const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
 
   function syncDOM() {
