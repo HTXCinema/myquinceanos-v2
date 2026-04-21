@@ -64,14 +64,10 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 }
 
 export default function HomePage() {
-  const amtsRef = useRef<Record<string, number>>(
-    Object.fromEntries(SLIDERS.map(s => [s.key, s.init]))
-  )
-  const totalRef = useRef(SLIDERS.reduce((a, s) => a + s.init, 0))
-  const [tick, setTick] = useState(0)
   const [carouselIdx, setCarouselIdx] = useState(0)
   const carouselRef = useRef<NodeJS.Timeout | null>(null)
 
+  // carousel auto-rotate
   useEffect(() => {
     carouselRef.current = setInterval(() => {
       setCarouselIdx(i => (i + 1) % FEATURED_VENDORS.length)
@@ -79,164 +75,118 @@ export default function HomePage() {
     return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
   }, [])
 
+  // budget calculator — pure vanilla JS, zero React involvement
   useEffect(() => {
-  const mount = document.getElementById('calc-mount')
-  if (!mount) return
+    const mount = document.getElementById('calc-mount')
+    if (!mount) return
 
-  const fmt2 = (n: number) => '$' + Math.round(n).toLocaleString()
+    const amts: Record<string, number> = Object.fromEntries(SLIDERS.map(s => [s.key, s.init]))
+    let total = SLIDERS.reduce((a, s) => a + s.init, 0)
 
-  function render() {
-    const t = totalRef.current
-    const totalDisplay = document.getElementById('calc-total-display')
-    if (totalDisplay) totalDisplay.textContent = fmt2(t)
+    const f = (n: number) => '$' + Math.round(n).toLocaleString()
 
-    SLIDERS.forEach(s => {
-      const sl = document.getElementById('vsl-' + s.key) as HTMLInputElement | null
-      const av = document.getElementById('vav-' + s.key)
-      const pv = document.getElementById('vpv-' + s.key)
-      if (!sl || !av || !pv) return
-      sl.max = String(t)
-      sl.value = String(amtsRef.current[s.key])
-      const fp = (amtsRef.current[s.key] / t * 100)
-      sl.style.background = `linear-gradient(to right, ${s.color} ${fp.toFixed(1)}%, rgba(255,255,255,.1) 0%)`
-      av.textContent = fmt2(amtsRef.current[s.key])
-      pv.textContent = Math.round(fp) + '%'
-    })
+    function render() {
+      const disp = document.getElementById('calc-total-display')
+      if (disp) disp.textContent = f(total)
 
-    const tsl = document.getElementById('vsl-total') as HTMLInputElement | null
-    if (tsl) {
-      tsl.value = String(t)
-      const tp = ((t - 5000) / 45000 * 100)
-      tsl.style.background = `linear-gradient(to right, #C9A040 ${tp.toFixed(1)}%, rgba(255,255,255,.1) 0%)`
+      const tsl = document.getElementById('vsl-total') as HTMLInputElement | null
+      if (tsl) {
+        tsl.value = String(total)
+        tsl.style.background = `linear-gradient(to right,#C9A040 ${((total-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%)`
+      }
+
+      SLIDERS.forEach(s => {
+        const sl = document.getElementById('vsl-' + s.key) as HTMLInputElement | null
+        const av = document.getElementById('vav-' + s.key)
+        const pv = document.getElementById('vpv-' + s.key)
+        if (!sl || !av || !pv) return
+        sl.max = String(total)
+        sl.value = String(amts[s.key])
+        const fp = amts[s.key] / total * 100
+        sl.style.background = `linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%)`
+        av.textContent = f(amts[s.key])
+        pv.textContent = Math.round(fp) + '%'
+      })
+
+      document.querySelectorAll<HTMLElement>('.calc-preset').forEach(b => {
+        const v = parseInt(b.dataset.val || '0')
+        if (v === total) {
+          b.style.background = 'rgba(201,160,64,.18)'
+          b.style.borderColor = '#C9A040'
+          b.style.color = '#C9A040'
+        } else {
+          b.style.background = 'transparent'
+          b.style.borderColor = 'rgba(255,255,255,.18)'
+          b.style.color = 'rgba(250,216,233,.5)'
+        }
+      })
     }
 
-    document.querySelectorAll('.calc-preset').forEach(b => {
-      const el = b as HTMLElement
-      const v = parseInt(el.dataset.val || '0')
-      if (v === t) {
-        el.style.background = 'rgba(201,160,64,.18)'
-        el.style.borderColor = '#C9A040'
-        el.style.color = '#C9A040'
-      } else {
-        el.style.background = 'transparent'
-        el.style.borderColor = 'rgba(255,255,255,.18)'
-        el.style.color = 'rgba(250,216,233,.5)'
-      }
-    })
-  }
+    function scaleAll(newTotal: number) {
+      const ratio = newTotal / total
+      SLIDERS.forEach(s => { amts[s.key] = Math.round(amts[s.key] * ratio) })
+      total = newTotal
+      render()
+    }
 
-  function scaleAll(newTotal: number) {
-    const ratio = newTotal / totalRef.current
-    SLIDERS.forEach(s => { amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio) })
-    totalRef.current = newTotal
-    render()
-  }
+    function onCat(key: string, val: number) {
+      const diff = val - amts[key]
+      const others = SLIDERS.map(s => s.key).filter(k => k !== key)
+      const otherSum = others.reduce((a, k) => a + amts[k], 0)
+      others.forEach(k => {
+        const share = otherSum > 0 ? amts[k] / otherSum : 1 / others.length
+        amts[k] = Math.max(0, Math.round(amts[k] - diff * share))
+      })
+      amts[key] = val
+      render()
+    }
 
-  function onCat(key: string, val: number) {
-    const diff = val - amtsRef.current[key]
-    const others = SLIDERS.map(s => s.key).filter(k => k !== key)
-    const otherSum = others.reduce((a, k) => a + amtsRef.current[k], 0)
-    others.forEach(k => {
-      const share = otherSum > 0 ? amtsRef.current[k] / otherSum : 1 / others.length
-      amtsRef.current[k] = Math.max(0, Math.round(amtsRef.current[k] - diff * share))
-    })
-    amtsRef.current[key] = val
-    render()
-  }
-
-  const t = totalRef.current
-
-  mount.innerHTML = `
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-      ${[8000,12000,18500,25000,35000].map(p => `
-        <button class="calc-preset" data-val="${p}" style="padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;background:${t===p?'rgba(201,160,64,.18)':'transparent'};border:0.5px solid ${t===p?'#C9A040':'rgba(255,255,255,.18)'};color:${t===p?'#C9A040':'rgba(250,216,233,.5)'}">${fmt2(p)}</button>
-      `).join('')}
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
-      <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">Total Budget</span>
-      <input id="vsl-total" type="range" min="5000" max="50000" step="500" value="${t}"
-        style="flex:1;accent-color:#C9A040;background:linear-gradient(to right,#C9A040 ${((t-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
-      <span style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${fmt2(t)}</span>
-    </div>
-    <div style="height:0.5px;background:rgba(255,255,255,.08);margin:10px 0 14px"></div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      ${SLIDERS.map(s => {
-        const amt = amtsRef.current[s.key]
-        const fp = (amt / t * 100)
-        return `
-          <div style="display:flex;align-items:center;gap:12px">
+    mount.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        ${[8000,12000,18500,25000,35000].map(p =>
+          `<button class="calc-preset" data-val="${p}" style="padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;background:${total===p?'rgba(201,160,64,.18)':'transparent'};border:0.5px solid ${total===p?'#C9A040':'rgba(255,255,255,.18)'};color:${total===p?'#C9A040':'rgba(250,216,233,.5)'}">${f(p)}</button>`
+        ).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+        <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">Total Budget</span>
+        <input id="vsl-total" type="range" min="5000" max="50000" step="500" value="${total}" style="flex:1;accent-color:#C9A040;background:linear-gradient(to right,#C9A040 ${((total-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
+        <span id="vav-total" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(total)}</span>
+      </div>
+      <div style="height:0.5px;background:rgba(255,255,255,.08);margin:10px 0 14px"></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${SLIDERS.map(s => {
+          const fp = amts[s.key] / total * 100
+          return `<div style="display:flex;align-items:center;gap:12px">
             <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">${s.label}</span>
-            <input id="vsl-${s.key}" type="range" min="0" max="${t}" step="50" value="${amt}"
-              style="flex:1;accent-color:${s.color};background:linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
-            <span id="vav-${s.key}" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${fmt2(amt)}</span>
+            <input id="vsl-${s.key}" type="range" min="0" max="${total}" step="50" value="${amts[s.key]}" style="flex:1;accent-color:${s.color};background:linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
+            <span id="vav-${s.key}" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(amts[s.key])}</span>
             <span id="vpv-${s.key}" style="font-size:11px;color:rgba(250,216,233,.35);width:38px;text-align:right">${Math.round(fp)}%</span>
           </div>`
-      }).join('')}
-    </div>
-    <div style="margin-top:14px;font-size:12px;text-align:center;padding:8px;border-radius:8px;background:rgba(93,202,165,.1);color:#5DCAA5">
-      ✓ Drag any category slider to customize — or tap a preset above
-    </div>
-  `
+        }).join('')}
+      </div>
+      <div style="margin-top:14px;font-size:12px;text-align:center;padding:8px;border-radius:8px;background:rgba(93,202,165,.1);color:#5DCAA5">
+        Drag any category slider to customize — or tap a preset above
+      </div>
+    `
 
-  document.getElementById('vsl-total')?.addEventListener('input', e => {
-    scaleAll(Number((e.target as HTMLInputElement).value))
-  })
-
-  SLIDERS.forEach(s => {
-    document.getElementById('vsl-' + s.key)?.addEventListener('input', e => {
-      onCat(s.key, Number((e.target as HTMLInputElement).value))
+    document.getElementById('vsl-total')?.addEventListener('input', e => {
+      scaleAll(Number((e.target as HTMLInputElement).value))
     })
-  })
 
-  document.querySelectorAll('.calc-preset').forEach(b => {
-    b.addEventListener('click', () => {
-      scaleAll(parseInt((b as HTMLElement).dataset.val || '0'))
+    SLIDERS.forEach(s => {
+      document.getElementById('vsl-' + s.key)?.addEventListener('input', e => {
+        onCat(s.key, Number((e.target as HTMLInputElement).value))
+      })
     })
-  })
-}, [])
+
+    document.querySelectorAll('.calc-preset').forEach(b => {
+      b.addEventListener('click', () => {
+        scaleAll(parseInt((b as HTMLElement).dataset.val || '0'))
+      })
+    })
+  }, [])
 
   const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
-
-  function syncDOM() {
-    const t = totalRef.current
-    SLIDERS.forEach(s => {
-      const el = document.getElementById('csl-' + s.key) as HTMLInputElement | null
-      if (!el) return
-      el.max = String(t)
-      el.value = String(amtsRef.current[s.key])
-      const fp = (amtsRef.current[s.key] / t * 100).toFixed(1)
-      el.style.background = `linear-gradient(to right, ${s.color} ${fp}%, rgba(255,255,255,.1) 0%)`
-    })
-    const tsl = document.getElementById('total-sl') as HTMLInputElement | null
-    if (tsl) {
-      tsl.value = String(t)
-      const tp = ((t - 5000) / 45000 * 100).toFixed(1)
-      tsl.style.background = `linear-gradient(to right, #C9A040 ${tp}%, rgba(255,255,255,.1) 0%)`
-    }
-    setTick(n => n + 1)
-  }
-
-  function scaleToTotal(newTotal: number) {
-    const ratio = newTotal / totalRef.current
-    SLIDERS.forEach(s => {
-      amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio)
-    })
-    totalRef.current = newTotal
-    syncDOM()
-  }
-
-  function onCatChange(key: string, val: number) {
-    const oldVal = amtsRef.current[key]
-    const diff = val - oldVal
-    const otherKeys = SLIDERS.map(s => s.key).filter(k => k !== key)
-    const otherTotal = otherKeys.reduce((a, k) => a + amtsRef.current[k], 0)
-    otherKeys.forEach(k => {
-      const share = otherTotal > 0 ? amtsRef.current[k] / otherTotal : 1 / otherKeys.length
-      amtsRef.current[k] = Math.max(0, Math.round(amtsRef.current[k] - diff * share))
-    })
-    amtsRef.current[key] = val
-    syncDOM()
-  }
 
   const visibleVendors = [
     FEATURED_VENDORS[carouselIdx % FEATURED_VENDORS.length],
@@ -328,72 +278,18 @@ export default function HomePage() {
         </div>
 
         {/* LIVE BUDGET CALCULATOR */}
-    {/* LIVE BUDGET CALCULATOR */}
-<div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
-    <div>
-      <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
-      <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
-    </div>
-    <div style={{ textAlign: 'right' }}>
-      <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
-      <div id="calc-total-display" className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(totalRef.current)}</div>
-    </div>
-  </div>
-  <div id="calc-mount" />
-</div>
-          {/* Presets */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-            {[8000, 12000, 18500, 25000, 35000].map(preset => (
-              <button key={preset} onClick={() => scaleToTotal(preset)} style={{
-                padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                background: totalRef.current === preset ? 'rgba(201,160,64,.18)' : 'transparent',
-                border: `0.5px solid ${totalRef.current === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
-                color: totalRef.current === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
-              }}>{fmt(preset)}</button>
-            ))}
+        <div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
+            <div>
+              <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
+              <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
+              <div id="calc-total-display" className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>$18,500</div>
+            </div>
           </div>
-
-          {/* Total slider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-            <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
-            <input
-              id="total-sl"
-              type="range" min={5000} max={50000} step={500}
-              defaultValue={totalRef.current}
-              onChange={e => scaleToTotal(Number(e.target.value))}
-              style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((totalRef.current - 5000) / 45000) * 100}%, rgba(255,255,255,.1) 0%)` }}
-            />
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(totalRef.current)}</span>
-          </div>
-
-          <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
-
-          {/* Category sliders — keyed to tick so they re-render after syncDOM */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {SLIDERS.map(s => {
-              const amt = amtsRef.current[s.key]
-              const fillPct = (amt / totalRef.current * 100).toFixed(1)
-              return (
-                <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
-                  <input
-                    id={'csl-' + s.key}
-                    type="range" min={0} max={totalRef.current} step={50}
-                    defaultValue={s.init}
-                    onChange={e => onCatChange(s.key, Number(e.target.value))}
-                    style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }}
-                  />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(amt)}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 38, textAlign: 'right' }}>{Math.round(Number(fillPct))}%</span>
-                </div>
-              )
-            })}
-          </div>
-
-          <div style={{ marginTop: 14, fontSize: 12, textAlign: 'center', padding: 8, borderRadius: 8, background: 'rgba(93,202,165,.1)', color: '#5DCAA5' }}>
-            {tick >= 0 && '✓ Drag any category slider to customize — or tap a preset above'}
-          </div>
+          <div id="calc-mount" />
         </div>
       </section>
 
@@ -416,14 +312,12 @@ export default function HomePage() {
             <Link href="/vendors" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all 127 →</Link>
           </div>
         </div>
-
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
           {FEATURED_VENDORS.map((_, i) => (
             <button key={i} onClick={() => setCarouselIdx(i)}
               style={{ width: i === carouselIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === carouselIdx ? '#C97C8A' : 'rgba(201,124,138,.3)', border: 'none', cursor: 'pointer', transition: 'all 0.3s' }} />
           ))}
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
           {visibleVendors.map((v, i) => (
             <div key={i} style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 16, overflow: 'hidden', cursor: 'pointer' }}>
@@ -538,10 +432,10 @@ export default function HomePage() {
             Create a free mom account — saved vendors, event countdown, payment due dates, planning checklist, all in one dashboard.
           </p>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-            {['Save & compare vendors', 'Track payment due dates', 'Planning checklist', 'Event countdown'].map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#7a5c65' }}>
+            {['Save & compare vendors', 'Track payment due dates', 'Planning checklist', 'Event countdown'].map(f2 => (
+              <div key={f2} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#7a5c65' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97C8A" strokeWidth="2.5"><polyline points="20,6 9,17 4,12" /></svg>
-                {f}
+                {f2}
               </div>
             ))}
           </div>
