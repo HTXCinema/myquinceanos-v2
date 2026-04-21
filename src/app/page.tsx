@@ -64,14 +64,24 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 }
 
 export default function HomePage() {
-  const amtsRef = useRef<Record<string, number>>(
-    Object.fromEntries(SLIDERS.map(s => [s.key, s.init]))
-  )
-  const totalRef = useRef(SLIDERS.reduce((a, s) => a + s.init, 0))
-  const [displayTotal, setDisplayTotal] = useState(totalRef.current)
-  const [displayAmts, setDisplayAmts] = useState<Record<string, number>>({ ...amtsRef.current })
-  const [carouselIdx, setCarouselIdx] = useState(0)
-  const carouselRef = useRef<NodeJS.Timeout | null>(null)
+ function syncDOM() {
+  const t = totalRef.current
+  SLIDERS.forEach(s => {
+    const el = document.getElementById('csl-' + s.key) as HTMLInputElement | null
+    if (!el) return
+    el.max = String(t)
+    el.value = String(amtsRef.current[s.key])
+    const fp = (amtsRef.current[s.key] / t * 100).toFixed(1)
+    el.style.background = `linear-gradient(to right, ${s.color} ${fp}%, rgba(255,255,255,.1) 0%)`
+  })
+  const tsl = document.getElementById('total-sl') as HTMLInputElement | null
+  if (tsl) {
+    tsl.value = String(t)
+    const tp = ((t - 5000) / 45000 * 100).toFixed(1)
+    tsl.style.background = `linear-gradient(to right, #C9A040 ${tp}%, rgba(255,255,255,.1) 0%)`
+  }
+  setTick(n => n + 1)
+}
 
   useEffect(() => {
     carouselRef.current = setInterval(() => {
