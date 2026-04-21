@@ -1,9 +1,10 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Nav from '@/components/layout/Nav'
 import Footer from '@/components/layout/Footer'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import ReviewModal from '@/components/ReviewModal'
 
 const VENDOR_CATEGORIES = [
   { id: 'venue', label: 'Venue', slug: 'venues', month: 12 },
@@ -34,9 +35,7 @@ type VendorEntry = {
   name: string
   price?: number
   phone?: string
-  website?: string
   note?: string
-  selected?: boolean
 }
 
 type ChecklistItem = {
@@ -60,7 +59,17 @@ function initChecklist(): ChecklistItem[] {
 }
 
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
-const daysUntil = (date: string) => date ? Math.ceil((new Date(date).getTime() - Date.now()) / 86400000) : null
+
+function daysBreakdown(date: string) {
+  if (!date) return null
+  const ms = new Date(date).getTime() - Date.now()
+  if (ms <= 0) return null
+  const totalDays = Math.ceil(ms / 86400000)
+  const months = Math.floor(totalDays / 30)
+  const weeks = Math.floor((totalDays % 30) / 7)
+  const days = totalDays % 7
+  return { totalDays, months, weeks, days }
+}
 
 export default function PlanningPage() {
   const [step, setStep] = useState<'setup' | 'dashboard'>('setup')
@@ -73,9 +82,10 @@ export default function PlanningPage() {
   const [newVendor, setNewVendor] = useState({ name: '', price: '', phone: '', note: '' })
   const [addPayment, setAddPayment] = useState(false)
   const [newPayment, setNewPayment] = useState({ vendor: '', label: '', amount: '', due: '' })
-  const supabase = createClient()
+  const [reviewVendor, setReviewVendor] = useState<{ id: string; name: string; category: string } | null>(null)
 
-  const days = daysUntil(form.date)
+  const countdown = daysBreakdown(form.date)
+  const eventPassed = form.date ? new Date(form.date) < new Date() : false
   const budget = Number(form.budget) || 0
   const totalSpent = checklist.reduce((a, c) => {
     const sel = c.savedVendors.find(v => v.name === c.selectedVendor)
@@ -86,9 +96,8 @@ export default function PlanningPage() {
   const progressPct = Math.round((bookedCount / VENDOR_CATEGORIES.length) * 100)
 
   const getCatItem = (catId: string) => checklist.find(c => c.catId === catId)!
-  const updateCat = (catId: string, updates: Partial<ChecklistItem>) => {
+  const updateCat = (catId: string, updates: Partial<ChecklistItem>) =>
     setChecklist(prev => prev.map(c => c.catId === catId ? { ...c, ...updates } : c))
-  }
 
   const addVendorToCategory = (catId: string) => {
     if (!newVendor.name.trim()) return
@@ -111,8 +120,8 @@ export default function PlanningPage() {
 
   const removeVendor = (catId: string, vendorId: string) => {
     const item = getCatItem(catId)
-    const remaining = item.savedVendors.filter(v => v.id !== vendorId)
     const removing = item.savedVendors.find(v => v.id === vendorId)
+    const remaining = item.savedVendors.filter(v => v.id !== vendorId)
     updateCat(catId, {
       savedVendors: remaining,
       selectedVendor: removing?.name === item.selectedVendor ? '' : item.selectedVendor,
@@ -120,6 +129,7 @@ export default function PlanningPage() {
     })
   }
 
+  // ── SETUP SCREEN ──
   if (step === 'setup') {
     return (
       <>
@@ -162,6 +172,7 @@ export default function PlanningPage() {
     )
   }
 
+  // ── DASHBOARD ──
   return (
     <>
       <Nav />
@@ -173,12 +184,25 @@ export default function PlanningPage() {
             <div>
               <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Quince Command Center</div>
               <h1 className="font-serif" style={{ fontSize: 32, color: '#fff', marginBottom: 4 }}>{form.daughter}'s Quinceañera</h1>
-              <div style={{ fontSize: 13, color: 'rgba(250,216,233,.5)' }}>{form.guests ? `${form.guests} guests · ` : ''}{form.date ? new Date(form.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</div>
+              <div style={{ fontSize: 13, color: 'rgba(250,216,233,.5)' }}>
+                {form.guests ? `${form.guests} guests · ` : ''}
+                {form.date ? new Date(form.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}
+              </div>
             </div>
-            {days !== null && (
+            {countdown && (
               <div style={{ textAlign: 'center', background: 'rgba(201,160,64,.12)', border: '0.5px solid rgba(201,160,64,.3)', borderRadius: 14, padding: '14px 24px' }}>
-                <div className="font-serif" style={{ fontSize: 44, color: '#C9A040', lineHeight: 1 }}>{days > 0 ? days : 0}</div>
+                <div className="font-serif" style={{ fontSize: 44, color: '#C9A040', lineHeight: 1 }}>{countdown.totalDays}</div>
                 <div style={{ fontSize: 11, color: 'rgba(250,216,233,.5)', marginTop: 2 }}>days away</div>
+                <div style={{ fontSize: 10, color: 'rgba(201,160,64,.6)', marginTop: 3 }}>
+                  {countdown.months > 0 ? `${countdown.months}mo ` : ''}{countdown.weeks > 0 ? `${countdown.weeks}wk ` : ''}{countdown.days}d
+                </div>
+              </div>
+            )}
+            {eventPassed && (
+              <div style={{ background: 'rgba(26,122,74,.15)', border: '0.5px solid rgba(26,122,74,.3)', borderRadius: 14, padding: '14px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 20 }}>🎉</div>
+                <div style={{ fontSize: 12, color: '#5DCAA5', fontWeight: 500, marginTop: 4 }}>The big day has passed!</div>
+                <div style={{ fontSize: 11, color: 'rgba(93,202,165,.7)', marginTop: 2 }}>Leave reviews for your vendors</div>
               </div>
             )}
           </div>
@@ -188,9 +212,9 @@ export default function PlanningPage() {
             {[
               ['Budget', budget ? fmt(budget) : '—'],
               ['Spent', fmt(totalSpent)],
-              ['Booked', `${bookedCount}/${VENDOR_CATEGORIES.length}`],
+              ['Booked', `${bookedCount} / ${VENDOR_CATEGORIES.length}`],
               ['Progress', `${progressPct}%`],
-            ].map(([l,v]) => (
+            ].map(([l, v]) => (
               <div key={l} style={{ background: 'rgba(255,255,255,.05)', border: '0.5px solid rgba(250,216,233,.08)', borderRadius: 10, padding: '12px 16px' }}>
                 <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>{l}</div>
                 <div style={{ fontSize: 20, fontWeight: 500, color: '#fff' }}>{v}</div>
@@ -199,7 +223,7 @@ export default function PlanningPage() {
           </div>
 
           {/* TABS */}
-          <div style={{ display: 'flex', gap: 0, borderBottom: '0.5px solid rgba(250,216,233,.1)' }}>
+          <div style={{ display: 'flex', gap: 0, borderBottom: '0.5px solid rgba(250,216,233,.1)', overflowX: 'auto' }}>
             {([
               ['checklist', 'Checklist'],
               ['vendors', 'Compare Vendors'],
@@ -208,7 +232,7 @@ export default function PlanningPage() {
               ['timeline', 'Timeline'],
             ] as [typeof tab, string][]).map(([key, label]) => (
               <button key={key} onClick={() => setTab(key)}
-                style={{ padding: '12px 20px', background: 'transparent', border: 'none', borderBottom: tab === key ? '2px solid #C97C8A' : '2px solid transparent', color: tab === key ? '#FAD8E9' : 'rgba(250,216,233,.4)', fontSize: 13, fontWeight: tab === key ? 500 : 400, cursor: 'pointer', transition: 'all 0.15s' }}>
+                style={{ padding: '12px 20px', background: 'transparent', border: 'none', borderBottom: tab === key ? '2px solid #C97C8A' : '2px solid transparent', color: tab === key ? '#FAD8E9' : 'rgba(250,216,233,.4)', fontSize: 13, fontWeight: tab === key ? 500 : 400, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 {label}
               </button>
             ))}
@@ -216,7 +240,7 @@ export default function PlanningPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 28px 48px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 28px 60px' }}>
 
         {/* ── CHECKLIST TAB ── */}
         {tab === 'checklist' && (
@@ -239,7 +263,14 @@ export default function PlanningPage() {
                           <span style={{ fontSize: 11, color: '#C9A040', marginLeft: 8 }}>{item.savedVendors.length} saved</span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {/* Review button — only shows after event date */}
+                        {item.booked && item.selectedVendor && eventPassed && (
+                          <button onClick={() => setReviewVendor({ id: '', name: item.selectedVendor, category: cat.label })}
+                            style={{ fontSize: 11, color: '#C9A040', background: 'rgba(201,160,64,.1)', border: 'none', borderRadius: 20, padding: '3px 10px', cursor: 'pointer', fontWeight: 500 }}>
+                            ⭐ Review
+                          </button>
+                        )}
                         {item.savedVendors.length > 0 && (
                           <button onClick={() => { setTab('vendors'); setCompareMode(cat.id) }}
                             style={{ fontSize: 11, color: '#C9A040', background: 'rgba(201,160,64,.1)', border: 'none', borderRadius: 20, padding: '3px 10px', cursor: 'pointer' }}>
@@ -257,7 +288,7 @@ export default function PlanningPage() {
               </div>
             </div>
 
-            {/* PROGRESS + NEXT STEPS */}
+            {/* PROGRESS CARD */}
             <div>
               <h2 className="font-serif" style={{ fontSize: 24, color: '#1a0a0f', marginBottom: 16 }}>Your Progress</h2>
               <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: 24, marginBottom: 16 }}>
@@ -272,9 +303,12 @@ export default function PlanningPage() {
                   <div>
                     <div className="font-serif" style={{ fontSize: 36, color: '#C97C8A', lineHeight: 1 }}>{progressPct}%</div>
                     <div style={{ fontSize: 13, color: '#7a5c65', marginTop: 4 }}>{bookedCount} of {VENDOR_CATEGORIES.length} vendors booked</div>
-                    {days !== null && days > 0 && (
-                      <div style={{ fontSize: 12, color: '#C9A040', marginTop: 6, fontWeight: 500 }}>{days} days to go</div>
+                    {countdown && (
+                      <div style={{ fontSize: 12, color: '#C9A040', marginTop: 6, fontWeight: 500 }}>
+                        {countdown.months > 0 ? `${countdown.months}mo ` : ''}{countdown.weeks > 0 ? `${countdown.weeks}wk ` : ''}{countdown.days}d to go
+                      </div>
                     )}
+                    {eventPassed && <div style={{ fontSize: 12, color: '#5DCAA5', marginTop: 6, fontWeight: 500 }}>🎉 Big day complete!</div>}
                   </div>
                 </div>
                 <div style={{ height: 0.5, background: 'rgba(201,124,138,.12)', marginBottom: 16 }} />
@@ -285,6 +319,11 @@ export default function PlanningPage() {
                     <Link href={`/vendors?category=${c.slug}`} style={{ fontSize: 12, color: '#C97C8A', textDecoration: 'none', fontWeight: 500 }}>Find vendors →</Link>
                   </div>
                 ))}
+                {eventPassed && (
+                  <div style={{ marginTop: 12, background: 'rgba(201,160,64,.08)', border: '0.5px solid rgba(201,160,64,.25)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#7a5c65' }}>
+                    Your event has passed — go back to the checklist and leave reviews for your vendors!
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -297,13 +336,11 @@ export default function PlanningPage() {
               <h2 className="font-serif" style={{ fontSize: 24, color: '#1a0a0f' }}>Compare & Save Vendors</h2>
               <div style={{ fontSize: 13, color: '#7a5c65' }}>Save up to 3 vendors per category, compare, then pick one</div>
             </div>
-
             {VENDOR_CATEGORIES.map(cat => {
               const item = getCatItem(cat.id)
               const isOpen = compareMode === cat.id
               return (
                 <div key={cat.id} style={{ background: '#fff', border: `0.5px solid ${item.booked ? 'rgba(26,122,74,.25)' : 'rgba(201,124,138,.18)'}`, borderRadius: 14, marginBottom: 12, overflow: 'hidden' }}>
-                  {/* Category header */}
                   <div onClick={() => setCompareMode(isOpen ? null : cat.id)}
                     style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', background: isOpen ? 'rgba(201,124,138,.04)' : 'transparent' }}>
                     <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${item.booked ? '#1a7a4a' : '#C97C8A'}`, background: item.booked ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -313,10 +350,8 @@ export default function PlanningPage() {
                     {item.selectedVendor && <span style={{ fontSize: 12, color: '#1a7a4a', fontWeight: 500 }}>✓ {item.selectedVendor}</span>}
                     {!item.selectedVendor && item.savedVendors.length > 0 && <span style={{ fontSize: 12, color: '#C9A040' }}>{item.savedVendors.length} saved · pick one</span>}
                     {!item.selectedVendor && item.savedVendors.length === 0 && <span style={{ fontSize: 12, color: '#bbb' }}>No vendors saved yet</span>}
-                    <svg width="14" height="14" fill="none" stroke="#7a5c65" strokeWidth="2" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="3,5 7,9 11,5"/></svg>
+                    <svg width="14" height="14" fill="none" stroke="#7a5c65" strokeWidth="2" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><polyline points="3,5 7,9 11,5"/></svg>
                   </div>
-
-                  {/* Expanded compare panel */}
                   {isOpen && (
                     <div style={{ padding: '0 18px 18px', borderTop: '0.5px solid rgba(201,124,138,.1)' }}>
                       {item.savedVendors.length === 0 ? (
@@ -356,8 +391,6 @@ export default function PlanningPage() {
                           ))}
                         </div>
                       )}
-
-                      {/* Add vendor form */}
                       {addingVendorTo === cat.id ? (
                         <div style={{ marginTop: 14, background: 'rgba(201,124,138,.04)', border: '0.5px solid rgba(201,124,138,.2)', borderRadius: 12, padding: 16 }}>
                           <div style={{ fontSize: 12, fontWeight: 600, color: '#C97C8A', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Add vendor to compare</div>
@@ -436,7 +469,6 @@ export default function PlanningPage() {
                 </>
               )}
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {VENDOR_CATEGORIES.map(cat => {
                 const item = getCatItem(cat.id)
@@ -448,8 +480,8 @@ export default function PlanningPage() {
                     <div style={{ width: 110, fontSize: 13, color: '#1a0a0f', fontWeight: 500, flexShrink: 0 }}>{cat.label}</div>
                     <div style={{ flex: 1 }}>
                       {item.selectedVendor
-                        ? <div style={{ fontSize: 12, color: '#7a5c65', marginBottom: 4 }}>{item.selectedVendor}</div>
-                        : <div style={{ fontSize: 12, color: '#bbb', marginBottom: 4 }}>Not booked yet</div>
+                        ? <div style={{ fontSize: 12, color: '#7a5c65', marginBottom: price > 0 ? 4 : 0 }}>{item.selectedVendor}</div>
+                        : <div style={{ fontSize: 12, color: '#bbb', marginBottom: 0 }}>Not booked yet</div>
                       }
                       {price > 0 && budget > 0 && (
                         <div style={{ height: 4, borderRadius: 2, background: 'rgba(201,124,138,.1)', overflow: 'hidden' }}>
@@ -484,7 +516,6 @@ export default function PlanningPage() {
                 + Add payment
               </button>
             </div>
-
             {addPayment && (
               <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.3)', borderRadius: 14, padding: 20, marginBottom: 16 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#1a0a0f', marginBottom: 14 }}>Add payment due date</div>
@@ -511,18 +542,18 @@ export default function PlanningPage() {
                     setNewPayment({ vendor: '', label: '', amount: '', due: '' })
                     setAddPayment(false)
                   }} style={{ background: '#C97C8A', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 20, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Save</button>
-                  <button onClick={() => setAddPayment(false)} style={{ background: 'transparent', color: '#7a5c65', border: '0.5px solid rgba(201,124,138,.25)', padding: '9px 16px', borderRadius: 20, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => setAddPayment(false)}
+                    style={{ background: 'transparent', color: '#7a5c65', border: '0.5px solid rgba(201,124,138,.25)', padding: '9px 16px', borderRadius: 20, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
                 </div>
               </div>
             )}
-
             {payments.length === 0 ? (
-              <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.15)', borderRadius: 14, padding: '32px 0', textAlign: 'center', color: '#7a5c65', fontSize: 14 }}>
+              <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.15)', borderRadius: 14, padding: '40px 0', textAlign: 'center', color: '#7a5c65', fontSize: 14 }}>
                 No payments tracked yet. Add your first deposit due date above.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {payments.sort((a,b) => new Date(a.due).getTime() - new Date(b.due).getTime()).map(p => {
+                {payments.sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime()).map(p => {
                   const overdue = !p.paid && new Date(p.due) < new Date()
                   const dueDate = new Date(p.due)
                   const daysLeft = Math.ceil((dueDate.getTime() - Date.now()) / 86400000)
@@ -538,21 +569,19 @@ export default function PlanningPage() {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 15, fontWeight: 600, color: p.paid ? '#1a7a4a' : overdue ? '#E24B4A' : '#1a0a0f' }}>{fmt(p.amount)}</div>
-                        {!p.paid && (
-                          <div style={{ fontSize: 11, marginTop: 2, color: overdue ? '#E24B4A' : daysLeft <= 14 ? '#C9A040' : '#7a5c65', fontWeight: overdue || daysLeft <= 14 ? 500 : 400 }}>
-                            {overdue ? '⚠ Overdue' : daysLeft === 0 ? 'Due today' : `In ${daysLeft} days`}
-                          </div>
-                        )}
+                        {!p.paid && <div style={{ fontSize: 11, marginTop: 2, color: overdue ? '#E24B4A' : daysLeft <= 14 ? '#C9A040' : '#7a5c65', fontWeight: overdue || daysLeft <= 14 ? 500 : 400 }}>
+                          {overdue ? '⚠ Overdue' : daysLeft === 0 ? 'Due today' : `In ${daysLeft} days`}
+                        </div>}
                         {p.paid && <div style={{ fontSize: 11, color: '#1a7a4a', marginTop: 2 }}>Paid ✓</div>}
                       </div>
                       <button onClick={() => setPayments(prev => prev.filter(x => x.id !== p.id))}
-                        style={{ background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>×</button>
+                        style={{ background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 18, padding: '0 4px' }}>×</button>
                     </div>
                   )
                 })}
-                <div style={{ background: 'rgba(201,124,138,.06)', borderRadius: 12, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                <div style={{ background: 'rgba(201,124,138,.06)', borderRadius: 12, padding: '12px 16px', display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 13, color: '#7a5c65' }}>Total paid</span>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: '#1a7a4a' }}>{fmt(totalPaid)} of {fmt(payments.reduce((a,p) => a + p.amount, 0))}</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: '#1a7a4a' }}>{fmt(totalPaid)} of {fmt(payments.reduce((a, p) => a + p.amount, 0))}</span>
                 </div>
               </div>
             )}
@@ -565,13 +594,13 @@ export default function PlanningPage() {
             <h2 className="font-serif" style={{ fontSize: 24, color: '#1a0a0f', marginBottom: 24 }}>Planning Timeline</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {TIMELINE_ITEMS.map((t, i) => {
-                const monthsLeft = days !== null ? Math.floor(days / 30) : null
+                const monthsLeft = countdown ? countdown.months : null
                 const isPast = monthsLeft !== null && t.months > monthsLeft
                 const isCurrent = monthsLeft !== null && monthsLeft <= t.months && monthsLeft > (TIMELINE_ITEMS[i + 1]?.months ?? -1)
                 return (
                   <div key={i} style={{ display: 'flex', gap: 20 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrent ? '#C9A040' : isPast ? '#1a7a4a' : 'rgba(201,124,138,.3)', flexShrink: 0, marginTop: 3, border: isCurrent ? '2px solid #C9A040' : 'none', boxShadow: isCurrent ? '0 0 0 4px rgba(201,160,64,.15)' : 'none' }} />
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: isCurrent ? '#C9A040' : isPast ? '#1a7a4a' : 'rgba(201,124,138,.3)', flexShrink: 0, marginTop: 3, boxShadow: isCurrent ? '0 0 0 4px rgba(201,160,64,.15)' : 'none' }} />
                       {i < TIMELINE_ITEMS.length - 1 && <div style={{ width: 2, flex: 1, background: 'rgba(201,124,138,.15)', minHeight: 24, marginTop: 4 }} />}
                     </div>
                     <div style={{ paddingBottom: 24 }}>
@@ -590,6 +619,17 @@ export default function PlanningPage() {
         )}
 
       </div>
+
+      {/* REVIEW MODAL */}
+      {reviewVendor && (
+        <ReviewModal
+          vendor={reviewVendor}
+          momProfileId=""
+          onClose={() => setReviewVendor(null)}
+          onSubmitted={() => setReviewVendor(null)}
+        />
+      )}
+
       <Footer />
     </>
   )
