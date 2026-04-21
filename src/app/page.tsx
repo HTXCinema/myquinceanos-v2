@@ -177,18 +177,68 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* LIVE BUDGET CALCULATOR */}
-        <div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 24 }}>
-            <div>
-              <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
-              <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Drag any slider — everything adjusts automatically</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
-              <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(total)}</div>
-            </div>
-          </div>
+    {/* LIVE BUDGET CALCULATOR */}
+<div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
+    <div>
+      <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
+      <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Drag any slider — everything adjusts automatically</p>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
+      <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(total)}</div>
+    </div>
+  </div>
+
+  {/* Presets */}
+  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+    {[8000, 12000, 18500, 25000, 35000].map(preset => (
+      <button key={preset} onClick={() => setTotal(preset)} style={{
+        padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+        background: total === preset ? 'rgba(201,160,64,.18)' : 'transparent',
+        border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
+        color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
+      }}>{fmt(preset)}</button>
+    ))}
+  </div>
+
+  {/* Total slider */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+    <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
+    <input type="range" min={5000} max={50000} step={500} value={total}
+      onChange={e => setTotal(Number(e.target.value))}
+      style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total-5000)/(50000-5000))*100}%, rgba(255,255,255,.1) 0%)` }} />
+    <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(total)}</span>
+  </div>
+
+  <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
+
+  {/* Category sliders */}
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    {SLIDERS.map(s => {
+      const amount = Math.round((pcts[s.key] / sumPct) * total)
+      const fillPct = (pcts[s.key] / 40) * 100
+      return (
+        <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
+          <input type="range" min={1} max={40} step={1} value={pcts[s.key]}
+            onChange={e => setPcts(p => ({ ...p, [s.key]: Number(e.target.value) }))}
+            style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }} />
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(amount)}</span>
+          <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 36, textAlign: 'right' }}>{Math.round(pcts[s.key])}%</span>
+        </div>
+      )
+    })}
+  </div>
+
+  <div style={{ marginTop: 14, fontSize: 12, textAlign: 'center', padding: 8, borderRadius: 8,
+    background: remaining >= 0 ? 'rgba(93,202,165,.1)' : 'rgba(240,153,123,.1)',
+    color: remaining >= 0 ? '#5DCAA5' : '#F0997B' }}>
+    {remaining >= 0
+      ? `✓ ${fmt(remaining)} unallocated — you're within budget`
+      : `⚠ ${fmt(Math.abs(remaining))} over budget — adjust your sliders`}
+  </div>
+</div>
 
         {/* Budget presets */}
 <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
