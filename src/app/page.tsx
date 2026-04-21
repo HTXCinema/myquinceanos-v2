@@ -43,14 +43,14 @@ const REVIEWS = [
 ]
 
 const SLIDERS = [
-  { key: 'venue',  label: 'Venue',         color: '#C97C8A' },
-  { key: 'photo',  label: 'Photo / Video', color: '#C9A040' },
-  { key: 'cater',  label: 'Catering',      color: '#5DCAA5' },
-  { key: 'dj',     label: 'DJ / Music',    color: '#AFA9EC' },
-  { key: 'dress',  label: 'Dress',         color: '#F4C0D1' },
-  { key: 'decor',  label: 'Decor',         color: '#FAC775' },
-  { key: 'makeup', label: 'Makeup & Hair', color: '#F0997B' },
-  { key: 'other',  label: 'Other',         color: '#B4B2A9' },
+  { key: 'venue',  label: 'Venue',         color: '#C97C8A', init: 4810 },
+  { key: 'photo',  label: 'Photo / Video', color: '#C9A040', init: 3145 },
+  { key: 'cater',  label: 'Catering',      color: '#5DCAA5', init: 3885 },
+  { key: 'dj',     label: 'DJ / Music',    color: '#AFA9EC', init: 1850 },
+  { key: 'dress',  label: 'Dress',         color: '#F4C0D1', init: 1665 },
+  { key: 'decor',  label: 'Decor',         color: '#FAC775', init: 1295 },
+  { key: 'makeup', label: 'Makeup & Hair', color: '#F0997B', init:  925 },
+  { key: 'other',  label: 'Other',         color: '#B4B2A9', init:  925 },
 ]
 
 function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
@@ -64,10 +64,12 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 }
 
 export default function HomePage() {
-  const [amounts, setAmounts] = useState<Record<string, number>>({
-    venue: 4810, photo: 3145, cater: 3885, dj: 1850,
-    dress: 1665, decor: 1295, makeup: 925, other: 925
-  })
+  const amtsRef = useRef<Record<string, number>>(
+    Object.fromEntries(SLIDERS.map(s => [s.key, s.init]))
+  )
+  const totalRef = useRef(SLIDERS.reduce((a, s) => a + s.init, 0))
+  const [displayTotal, setDisplayTotal] = useState(totalRef.current)
+  const [displayAmts, setDisplayAmts] = useState<Record<string, number>>({ ...amtsRef.current })
   const [carouselIdx, setCarouselIdx] = useState(0)
   const carouselRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -78,14 +80,41 @@ export default function HomePage() {
     return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
   }, [])
 
-  const total = Object.values(amounts).reduce((a, b) => a + b, 0)
   const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
 
+  function syncDOM() {
+    const t = totalRef.current
+    setDisplayTotal(t)
+    setDisplayAmts({ ...amtsRef.current })
+    SLIDERS.forEach(s => {
+      const el = document.getElementById('csl-' + s.key) as HTMLInputElement | null
+      if (!el) return
+      el.max = String(t)
+      el.value = String(amtsRef.current[s.key])
+      const fp = (amtsRef.current[s.key] / t * 100).toFixed(1)
+      el.style.background = `linear-gradient(to right, ${s.color} ${fp}%, rgba(255,255,255,.1) 0%)`
+    })
+    const tsl = document.getElementById('total-sl') as HTMLInputElement | null
+    if (tsl) {
+      tsl.value = String(t)
+      const tp = ((t - 5000) / 45000 * 100).toFixed(1)
+      tsl.style.background = `linear-gradient(to right, #C9A040 ${tp}%, rgba(255,255,255,.1) 0%)`
+    }
+  }
+
   function scaleToTotal(newTotal: number) {
-    const ratio = newTotal / total
-    setAmounts(prev => Object.fromEntries(
-      Object.entries(prev).map(([k, v]) => [k, Math.round(v * ratio)])
-    ))
+    const ratio = newTotal / totalRef.current
+    SLIDERS.forEach(s => {
+      amtsRef.current[s.key] = Math.round(amtsRef.current[s.key] * ratio)
+    })
+    totalRef.current = newTotal
+    syncDOM()
+  }
+
+  function onCatChange(key: string, val: number) {
+    amtsRef.current[key] = val
+    totalRef.current = Object.values(amtsRef.current).reduce((a, b) => a + b, 0)
+    syncDOM()
   }
 
   const visibleVendors = [
@@ -103,7 +132,7 @@ export default function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', height: 340, gap: 3 }}>
           {['Bell Tower on 34th', 'DreamLite Productions', 'La Hacienda Grand Ballroom'].map((label, i) => (
             <div key={i} style={{
-              background: `linear-gradient(160deg, ${['#3d1520,#7a3545,#c07080','#1a0a0f,#4a2030,#8a4060','#2a1018,#5a2535,#a06080'][i]})`,
+              background: `linear-gradient(160deg, ${['#3d1520,#7a3545,#c07080', '#1a0a0f,#4a2030,#8a4060', '#2a1018,#5a2535,#a06080'][i]})`,
               position: 'relative'
             }}>
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.5)' }} />
@@ -143,7 +172,7 @@ export default function HomePage() {
 
       {/* STATS */}
       <div style={{ background: '#C97C8A', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-        {[['127+','Houston Vendors'],['12','Categories'],['100%','Mom-Verified Reviews'],['Free','To Start Planning']].map(([n,l]) => (
+        {[['127+', 'Houston Vendors'], ['12', 'Categories'], ['100%', 'Mom-Verified Reviews'], ['Free', 'To Start Planning']].map(([n, l]) => (
           <div key={l} style={{ padding: '14px 8px', textAlign: 'center', borderRight: '0.5px solid rgba(255,255,255,.25)' }}>
             <span className="font-serif block" style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{n}</span>
             <span className="block" style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', marginTop: 1 }}>{l}</span>
@@ -186,7 +215,7 @@ export default function HomePage() {
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
-              <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(total)}</div>
+              <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(displayTotal)}</div>
             </div>
           </div>
 
@@ -195,9 +224,9 @@ export default function HomePage() {
             {[8000, 12000, 18500, 25000, 35000].map(preset => (
               <button key={preset} onClick={() => scaleToTotal(preset)} style={{
                 padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                background: total === preset ? 'rgba(201,160,64,.18)' : 'transparent',
-                border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
-                color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
+                background: displayTotal === preset ? 'rgba(201,160,64,.18)' : 'transparent',
+                border: `0.5px solid ${displayTotal === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
+                color: displayTotal === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
               }}>{fmt(preset)}</button>
             ))}
           </div>
@@ -205,10 +234,14 @@ export default function HomePage() {
           {/* Total slider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
             <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
-            <input type="range" min={5000} max={50000} step={500} value={total}
+            <input
+              id="total-sl"
+              type="range" min={5000} max={50000} step={500}
+              defaultValue={totalRef.current}
               onChange={e => scaleToTotal(Number(e.target.value))}
-              style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total - 5000) / 45000) * 100}%, rgba(255,255,255,.1) 0%)` }} />
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(total)}</span>
+              style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((totalRef.current - 5000) / 45000) * 100}%, rgba(255,255,255,.1) 0%)` }}
+            />
+            <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(displayTotal)}</span>
           </div>
 
           <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
@@ -216,16 +249,20 @@ export default function HomePage() {
           {/* Category sliders */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {SLIDERS.map(s => {
-              const amt = amounts[s.key]
-              const fillPct = (amt / total) * 100
+              const amt = displayAmts[s.key]
+              const fillPct = (amt / displayTotal * 100).toFixed(1)
               return (
                 <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
-                  <input type="range" min={0} max={total} step={50} value={amt}
-                    onChange={e => setAmounts(prev => ({ ...prev, [s.key]: Number(e.target.value) }))}
-                    style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }} />
+                  <input
+                    id={'csl-' + s.key}
+                    type="range" min={0} max={displayTotal} step={50}
+                    defaultValue={s.init}
+                    onChange={e => onCatChange(s.key, Number(e.target.value))}
+                    style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }}
+                  />
                   <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(amt)}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 38, textAlign: 'right' }}>{Math.round(fillPct)}%</span>
+                  <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 38, textAlign: 'right' }}>{Math.round(Number(fillPct))}%</span>
                 </div>
               )
             })}
@@ -267,7 +304,7 @@ export default function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
           {visibleVendors.map((v, i) => (
             <div key={i} style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 16, overflow: 'hidden', cursor: 'pointer' }}>
-              <div style={{ height: 200, background: v.bg, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: 200, background: v.bg, position: 'relative' }}>
                 <div style={{ position: 'absolute', top: 10, right: 10, background: '#C9A040', color: '#1a0a0f', fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20 }}>Featured</div>
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(201,160,64,.9)', padding: '7px 12px' }}>
                   <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(26,10,15,.6)', fontWeight: 600 }}>MyQuince Perk</div>
@@ -325,7 +362,6 @@ export default function HomePage() {
             <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, color: '#fff', lineHeight: 1.15 }}>What Houston moms are saying</h2>
           </div>
         </div>
-
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
           {['Every review requires a contract or receipt', 'No fake reviews. No pay-to-win ratings.', 'Only moms who booked can leave a review'].map(t => (
             <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.15)', borderRadius: 20, padding: '8px 16px' }}>
@@ -334,7 +370,6 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
           {REVIEWS.map(r => (
             <div key={r.name} style={{ background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.12)', borderRadius: 14, padding: 20 }}>
@@ -354,7 +389,6 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-
         <div style={{ marginTop: 40 }}>
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: 'rgba(250,216,233,.5)', marginBottom: 20 }}>How our review system works</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
