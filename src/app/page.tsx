@@ -43,14 +43,14 @@ const REVIEWS = [
 ]
 
 const SLIDERS = [
-  { key: 'venue', label: 'Venue', pct: 26, color: '#C97C8A' },
-  { key: 'photo', label: 'Photo / Video', pct: 17, color: '#C9A040' },
-  { key: 'cater', label: 'Catering', pct: 21, color: '#5DCAA5' },
-  { key: 'dj', label: 'DJ / Music', pct: 10, color: '#AFA9EC' },
-  { key: 'dress', label: 'Dress', pct: 9, color: '#F4C0D1' },
-  { key: 'decor', label: 'Decor', pct: 7, color: '#FAC775' },
-  { key: 'makeup', label: 'Makeup & Hair', pct: 5, color: '#F0997B' },
-  { key: 'other', label: 'Other', pct: 5, color: '#B4B2A9' },
+  { key: 'venue',  label: 'Venue',         color: '#C97C8A' },
+  { key: 'photo',  label: 'Photo / Video', color: '#C9A040' },
+  { key: 'cater',  label: 'Catering',      color: '#5DCAA5' },
+  { key: 'dj',     label: 'DJ / Music',    color: '#AFA9EC' },
+  { key: 'dress',  label: 'Dress',         color: '#F4C0D1' },
+  { key: 'decor',  label: 'Decor',         color: '#FAC775' },
+  { key: 'makeup', label: 'Makeup & Hair', color: '#F0997B' },
+  { key: 'other',  label: 'Other',         color: '#B4B2A9' },
 ]
 
 function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
@@ -64,24 +64,35 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 }
 
 export default function HomePage() {
- const [amounts, setAmounts] = useState<Record<string, number>>({
-  venue: 4810, photo: 3145, cater: 3885, dj: 1850,
-  dress: 1665, decor: 1295, makeup: 925, other: 925
-})
+  const [amounts, setAmounts] = useState<Record<string, number>>({
+    venue: 4810, photo: 3145, cater: 3885, dj: 1850,
+    dress: 1665, decor: 1295, makeup: 925, other: 925
+  })
+  const [carouselIdx, setCarouselIdx] = useState(0)
+  const carouselRef = useRef<NodeJS.Timeout | null>(null)
 
-const total = Object.values(amounts).reduce((a, b) => a + b, 0)
-const [carouselIdx, setCarouselIdx] = useState(0)
-const carouselRef = useRef<NodeJS.Timeout | null>(null)
+  useEffect(() => {
+    carouselRef.current = setInterval(() => {
+      setCarouselIdx(i => (i + 1) % FEATURED_VENDORS.length)
+    }, 4000)
+    return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
+  }, [])
 
-
-function scaleToTotal(newTotal: number) {
-  const currentTotal = Object.values(amounts).reduce((a, b) => a + b, 0)
-  const ratio = newTotal / currentTotal
-  setAmounts(prev => Object.fromEntries(
-    Object.entries(prev).map(([k, v]) => [k, Math.round(v * ratio)])
-  ))
-}
+  const total = Object.values(amounts).reduce((a, b) => a + b, 0)
   const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
+
+  function scaleToTotal(newTotal: number) {
+    const ratio = newTotal / total
+    setAmounts(prev => Object.fromEntries(
+      Object.entries(prev).map(([k, v]) => [k, Math.round(v * ratio)])
+    ))
+  }
+
+  const visibleVendors = [
+    FEATURED_VENDORS[carouselIdx % FEATURED_VENDORS.length],
+    FEATURED_VENDORS[(carouselIdx + 1) % FEATURED_VENDORS.length],
+    FEATURED_VENDORS[(carouselIdx + 2) % FEATURED_VENDORS.length],
+  ]
 
   return (
     <>
@@ -132,7 +143,7 @@ function scaleToTotal(newTotal: number) {
 
       {/* STATS */}
       <div style={{ background: '#C97C8A', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-        {[['127+','Houston Vendors'],['12','Categories'],['100%','Mom-Verified Reviews'],['Free','To Start Planning']].map(([n,l])=>(
+        {[['127+','Houston Vendors'],['12','Categories'],['100%','Mom-Verified Reviews'],['Free','To Start Planning']].map(([n,l]) => (
           <div key={l} style={{ padding: '14px 8px', textAlign: 'center', borderRight: '0.5px solid rgba(255,255,255,.25)' }}>
             <span className="font-serif block" style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{n}</span>
             <span className="block" style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', marginTop: 1 }}>{l}</span>
@@ -166,156 +177,62 @@ function scaleToTotal(newTotal: number) {
           ))}
         </div>
 
-{/* LIVE BUDGET CALCULATOR */}
-<div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
-    <div>
-      <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
-      <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
-    </div>
-    <div style={{ textAlign: 'right' }}>
-      <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
-      <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(total)}</div>
-    </div>
-  </div>
+        {/* LIVE BUDGET CALCULATOR */}
+        <div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
+            <div>
+              <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
+              <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
+              <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(total)}</div>
+            </div>
+          </div>
 
-  {/* Presets */}
-  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-    {[8000, 12000, 18500, 25000, 35000].map(preset => (
-      <button key={preset} onClick={() => scaleToTotal(preset)} style={{
-        padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-        background: total === preset ? 'rgba(201,160,64,.18)' : 'transparent',
-        border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
-        color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
-      }}>{fmt(preset)}</button>
-    ))}
-  </div>
+          {/* Presets */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            {[8000, 12000, 18500, 25000, 35000].map(preset => (
+              <button key={preset} onClick={() => scaleToTotal(preset)} style={{
+                padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+                background: total === preset ? 'rgba(201,160,64,.18)' : 'transparent',
+                border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
+                color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
+              }}>{fmt(preset)}</button>
+            ))}
+          </div>
 
-  {/* Total slider */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-    <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
-    <input type="range" min={5000} max={50000} step={500} value={total}
-      onChange={e => scaleToTotal(Number(e.target.value))}
-      style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total-5000)/(50000-5000))*100}%, rgba(255,255,255,.1) 0%)` }} />
-    <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(total)}</span>
-  </div>
+          {/* Total slider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+            <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
+            <input type="range" min={5000} max={50000} step={500} value={total}
+              onChange={e => scaleToTotal(Number(e.target.value))}
+              style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total - 5000) / 45000) * 100}%, rgba(255,255,255,.1) 0%)` }} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(total)}</span>
+          </div>
 
-  <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
-
-  {/* Category sliders */}
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-    {SLIDERS.map(s => {
-      const amt = amounts[s.key]
-      const fillPct = (amt / total) * 100
-      return (
-        <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
-          <input type="range" min={0} max={total} step={50} value={amt}
-            onChange={e => setAmounts(prev => ({ ...prev, [s.key]: Number(e.target.value) }))}
-            style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }} />
-          <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(amt)}</span>
-          <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 38, textAlign: 'right' }}>{Math.round(fillPct)}%</span>
-        </div>
-      )
-    })}
-  </div>
-
-  <div style={{ marginTop: 14, fontSize: 12, textAlign: 'center', padding: 8, borderRadius: 8, background: 'rgba(93,202,165,.1)', color: '#5DCAA5' }}>
-    ✓ Drag any category slider to customize — or tap a preset above
-  </div>
-</div>
-
-  {/* Presets */}
-  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-    {[8000, 12000, 18500, 25000, 35000].map(preset => (
-      <button key={preset} onClick={() => setTotal(preset)} style={{
-        padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-        background: total === preset ? 'rgba(201,160,64,.18)' : 'transparent',
-        border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.18)'}`,
-        color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)'
-      }}>{fmt(preset)}</button>
-    ))}
-  </div>
-
-  {/* Total slider */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-    <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
-    <input type="range" min={5000} max={50000} step={500} value={total}
-      onChange={e => setTotal(Number(e.target.value))}
-      style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total-5000)/(50000-5000))*100}%, rgba(255,255,255,.1) 0%)` }} />
-    <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(total)}</span>
-  </div>
-
-  <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
-
-  {/* Category sliders */}
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-    {SLIDERS.map(s => {
-      const amount = Math.round((pcts[s.key] / sumPct) * total)
-      const fillPct = (pcts[s.key] / 40) * 100
-      return (
-        <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
-          <input type="range" min={1} max={40} step={1} value={pcts[s.key]}
-            onChange={e => setPcts(p => ({ ...p, [s.key]: Number(e.target.value) }))}
-            style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }} />
-          <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(amount)}</span>
-          <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 36, textAlign: 'right' }}>{Math.round(pcts[s.key])}%</span>
-        </div>
-      )
-    })}
-  </div>
-
-  <div style={{ marginTop: 14, fontSize: 12, textAlign: 'center', padding: 8, borderRadius: 8,
-    background: remaining >= 0 ? 'rgba(93,202,165,.1)' : 'rgba(240,153,123,.1)',
-    color: remaining >= 0 ? '#5DCAA5' : '#F0997B' }}>
-    {remaining >= 0
-      ? `✓ ${fmt(remaining)} unallocated — you're within budget`
-      : `⚠ ${fmt(Math.abs(remaining))} over budget — adjust your sliders`}
-  </div>
-</div>
-
-        {/* Budget presets */}
-<div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-  {[8000, 12000, 18500, 25000, 35000].map(preset => (
-    <button key={preset} onClick={() => setTotal(preset)}
-      style={{ padding: '5px 14px', borderRadius: 20, border: `0.5px solid ${total === preset ? '#C9A040' : 'rgba(255,255,255,.15)'}`, background: total === preset ? 'rgba(201,160,64,.15)' : 'transparent', color: total === preset ? '#C9A040' : 'rgba(250,216,233,.5)', fontSize: 12, cursor: 'pointer' }}>
-      {fmt(preset)}
-    </button>
-  ))}
-</div>
-{/* Total slider */}
-<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-  <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 100, flexShrink: 0 }}>Total Budget</span>
-  <input type="range" min={5000} max={50000} step={500} value={total}
-    onChange={e => setTotal(Number(e.target.value))}
-    style={{ flex: 1, accentColor: '#C9A040', background: `linear-gradient(to right, #C9A040 ${((total-5000)/(50000-5000))*100}%, rgba(255,255,255,.1) 0%)` }} />
-  <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 56, textAlign: 'right' }}>{fmt(total)}</span>
-</div>
-
-          <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0' }} />
+          <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '10px 0 14px' }} />
 
           {/* Category sliders */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {SLIDERS.map(s => {
-              const pct = pcts[s.key]
-              const fillPct = (pct / 40) * 100
+              const amt = amounts[s.key]
+              const fillPct = (amt / total) * 100
               return (
                 <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 100, flexShrink: 0 }}>{s.label}</span>
-                  <input type="range" min={1} max={40} step={1} value={pct}
-                    onChange={e => setPcts(p => ({ ...p, [s.key]: Number(e.target.value) }))}
+                  <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
+                  <input type="range" min={0} max={total} step={50} value={amt}
+                    onChange={e => setAmounts(prev => ({ ...prev, [s.key]: Number(e.target.value) }))}
                     style={{ flex: 1, accentColor: s.color, background: `linear-gradient(to right, ${s.color} ${fillPct}%, rgba(255,255,255,.1) 0%)` }} />
-                  <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 56, textAlign: 'right' }}>{fmt(amounts[s.key])}</span>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(amt)}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 38, textAlign: 'right' }}>{Math.round(fillPct)}%</span>
                 </div>
               )
             })}
           </div>
 
-          <div style={{ marginTop: 16, fontSize: 12, textAlign: 'center', color: remaining >= 0 ? '#5DCAA5' : '#F0997B' }}>
-            {remaining >= 0
-              ? `✓ ${fmt(remaining)} unallocated — you're within budget`
-              : `⚠ ${fmt(Math.abs(remaining))} over budget — adjust your sliders`}
+          <div style={{ marginTop: 14, fontSize: 12, textAlign: 'center', padding: 8, borderRadius: 8, background: 'rgba(93,202,165,.1)', color: '#5DCAA5' }}>
+            ✓ Drag any category slider to customize — or tap a preset above
           </div>
         </div>
       </section>
@@ -328,19 +245,18 @@ function scaleToTotal(newTotal: number) {
             <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, lineHeight: 1.15 }}>Houston vendors families love</h2>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button onClick={() => { setCarouselIdx(i => (i - 1 + FEATURED_VENDORS.length) % FEATURED_VENDORS.length); if(carouselRef.current) clearInterval(carouselRef.current) }}
+            <button onClick={() => { setCarouselIdx(i => (i - 1 + FEATURED_VENDORS.length) % FEATURED_VENDORS.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
               style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="9,2 4,7 9,12"/></svg>
+              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="9,2 4,7 9,12" /></svg>
             </button>
-            <button onClick={() => { setCarouselIdx(i => (i + 1) % FEATURED_VENDORS.length); if(carouselRef.current) clearInterval(carouselRef.current) }}
+            <button onClick={() => { setCarouselIdx(i => (i + 1) % FEATURED_VENDORS.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
               style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="5,2 10,7 5,12"/></svg>
+              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="5,2 10,7 5,12" /></svg>
             </button>
             <Link href="/vendors" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all 127 →</Link>
           </div>
         </div>
 
-        {/* Carousel dots */}
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
           {FEATURED_VENDORS.map((_, i) => (
             <button key={i} onClick={() => setCarouselIdx(i)}
@@ -366,7 +282,7 @@ function scaleToTotal(newTotal: number) {
                   <span style={{ fontSize: 11.5, color: '#7a5c65', marginLeft: 4 }}>{v.rating} ({v.reviews} reviews)</span>
                 </div>
                 <div style={{ fontSize: 13, color: '#7a5c65' }}>Starting at <strong style={{ color: '#1a0a0f', fontWeight: 500 }}>${v.price.toLocaleString()}</strong></div>
-                <div className="badge-verified" style={{ marginTop: 7 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, fontSize: 11, color: '#1a7a4a', fontWeight: 500 }}>
                   <div style={{ width: 5, height: 5, background: '#1a7a4a', borderRadius: '50%' }} />
                   Mom-verified reviews
                 </div>
@@ -389,7 +305,7 @@ function scaleToTotal(newTotal: number) {
           {CATEGORIES.map((c, i) => (
             <Link key={c.slug} href={`/vendors?category=${c.slug}`}
               style={{ gridColumn: c.span2 ? 'span 2' : undefined, borderRadius: 14, overflow: 'hidden', position: 'relative', cursor: 'pointer', textDecoration: 'none', display: 'block' }}>
-              <div style={{ height: c.span2 ? 190 : 160, background: CAT_COLORS[i], position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ height: c.span2 ? 190 : 160, background: CAT_COLORS[i], position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.4)' }} />
               </div>
               <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 }}>
@@ -406,23 +322,22 @@ function scaleToTotal(newTotal: number) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 8 }}>Verified Reviews</div>
-            <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, color: '#1a0a0f', lineHeight: 1.15 }}>What Houston moms are saying</h2>
+            <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, color: '#fff', lineHeight: 1.15 }}>What Houston moms are saying</h2>
           </div>
         </div>
 
-        {/* Trust pills */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-          {['Every review requires a contract or receipt','No fake reviews. No pay-to-win ratings.','Only moms who booked can leave a review'].map(t => (
-            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(201,124,138,.06)', border: '0.5px solid rgba(201,124,138,.2)', borderRadius: 20, padding: '8px 16px' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A040" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
-              <span style={{ fontSize: 12, color: '#7a5c65' }}>{t}</span>
+          {['Every review requires a contract or receipt', 'No fake reviews. No pay-to-win ratings.', 'Only moms who booked can leave a review'].map(t => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.15)', borderRadius: 20, padding: '8px 16px' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A040" strokeWidth="2.5"><polyline points="20,6 9,17 4,12" /></svg>
+              <span style={{ fontSize: 12, color: 'rgba(250,216,233,.75)' }}>{t}</span>
             </div>
           ))}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
           {REVIEWS.map(r => (
-            <div key={r.name} style={{ background: 'rgba(26,10,15,.03)', border: '0.5px solid rgba(201,124,138,.15)', borderRadius: 14, padding: 20 }}>
+            <div key={r.name} style={{ background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.12)', borderRadius: 14, padding: 20 }}>
               <div style={{ display: 'flex', gap: 11, alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 500, color: r.textColor, flexShrink: 0 }}>{r.initials}</div>
                 <div>
@@ -431,24 +346,23 @@ function scaleToTotal(newTotal: number) {
                 </div>
               </div>
               <div style={{ marginBottom: 10 }}><Stars rating={r.rating} /></div>
-              <p style={{ fontSize: 13.5, color: '#4a3040', lineHeight: 1.7, fontStyle: 'italic', marginBottom: 12, borderLeft: '2px solid #C97C8A', paddingLeft: 12 }}>{r.body}</p>
+              <p style={{ fontSize: 13.5, color: 'rgba(250,216,233,.8)', lineHeight: 1.7, fontStyle: 'italic', marginBottom: 12, borderLeft: '2px solid #C97C8A', paddingLeft: 12 }}>{r.body}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#5DCAA5', fontWeight: 500 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12" /></svg>
                 Verified — contract submitted
               </div>
             </div>
           ))}
         </div>
 
-        {/* How it works */}
         <div style={{ marginTop: 40 }}>
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: 'rgba(250,216,233,.5)', marginBottom: 20 }}>How our review system works</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
             {[
-              ['01','Mom books a vendor','After booking through MyQuinceAños, she gets an invite to share her experience once the event is done.'],
-              ['02','Submit proof of purchase','She uploads her contract or receipt. Our team verifies it\'s real before the review ever goes live.'],
-              ['03','Honest reviews stay forever','Vendors can\'t buy, delete, or bury bad reviews. The truth stays visible for every mom who comes after.'],
-            ].map(([n,t,d]) => (
+              ['01', 'Mom books a vendor', "After booking through MyQuinceAños, she gets an invite to share her experience once the event is done."],
+              ['02', 'Submit proof of purchase', "She uploads her contract or receipt. Our team verifies it's real before the review ever goes live."],
+              ['03', 'Honest reviews stay forever', "Vendors can't buy, delete, or bury bad reviews. The truth stays visible for every mom who comes after."],
+            ].map(([n, t, d]) => (
               <div key={n} style={{ background: 'rgba(255,255,255,.04)', border: '0.5px solid rgba(250,216,233,.1)', borderRadius: 14, padding: 26 }}>
                 <div className="font-serif" style={{ fontSize: 44, color: '#C9A040', lineHeight: 1, marginBottom: 10 }}>{n}</div>
                 <h3 style={{ fontSize: 14, fontWeight: 500, color: '#fff', marginBottom: 6 }}>{t}</h3>
@@ -467,14 +381,13 @@ function scaleToTotal(newTotal: number) {
             Create a free mom account — saved vendors, event countdown, payment due dates, planning checklist, all in one dashboard.
           </p>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-            {['Save & compare vendors','Track payment due dates','Planning checklist','Event countdown'].map(f => (
+            {['Save & compare vendors', 'Track payment due dates', 'Planning checklist', 'Event countdown'].map(f => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#7a5c65' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97C8A" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97C8A" strokeWidth="2.5"><polyline points="20,6 9,17 4,12" /></svg>
                 {f}
               </div>
             ))}
           </div>
-          {/* Mini dashboard preview */}
           <div style={{ background: '#fff', borderRadius: 14, padding: 16, maxWidth: 380, border: '0.5px solid rgba(201,124,138,.2)' }}>
             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: '#C97C8A', marginBottom: 10 }}>Sofia's Quince Dashboard</div>
             {[
@@ -485,7 +398,7 @@ function scaleToTotal(newTotal: number) {
             ].map(row => (
               <div key={row.item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '0.5px solid rgba(201,124,138,.1)' }}>
                 <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${row.booked ? '#1a7a4a' : '#C97C8A'}`, background: row.booked ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {row.booked && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>}
+                  {row.booked && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>}
                 </div>
                 <span style={{ fontSize: 13, textDecoration: row.booked ? 'line-through' : 'none', color: row.booked ? '#aaa' : '#1a0a0f', flex: 1 }}>{row.item}</span>
                 {row.vendor && <span style={{ fontSize: 11, color: '#C97C8A', fontWeight: 500 }}>{row.vendor}</span>}
@@ -521,7 +434,7 @@ function scaleToTotal(newTotal: number) {
             <h2 className="font-serif" style={{ fontSize: 28, color: '#fff', marginBottom: 6 }}>Are you a quinceañera vendor in Houston?</h2>
             <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.8)', maxWidth: 420, lineHeight: 1.6, marginBottom: 16 }}>Get in front of thousands of Houston moms actively planning right now. Free to list. Upgrade when ready. No contracts.</p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {['Free Listing','Verified · $49/mo'].map(t => (
+              {['Free Listing', 'Verified · $49/mo'].map(t => (
                 <div key={t} style={{ background: 'rgba(255,255,255,.18)', border: '0.5px solid rgba(255,255,255,.3)', borderRadius: 20, padding: '8px 18px', fontSize: 12.5, color: '#fff' }}>{t}</div>
               ))}
               <div style={{ background: '#C9A040', border: '0.5px solid #C9A040', borderRadius: 20, padding: '8px 18px', fontSize: 12.5, color: '#1a0a0f', fontWeight: 700 }}>Featured · $129/mo</div>
