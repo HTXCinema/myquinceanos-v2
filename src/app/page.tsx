@@ -73,7 +73,6 @@ const total = Object.values(amounts).reduce((a, b) => a + b, 0)
 const [carouselIdx, setCarouselIdx] = useState(0)
 const carouselRef = useRef<NodeJS.Timeout | null>(null)
 
-const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
 
 function scaleToTotal(newTotal: number) {
   const currentTotal = Object.values(amounts).reduce((a, b) => a + b, 0)
