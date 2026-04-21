@@ -308,27 +308,27 @@ export default function HomePage() {
       </section>
 
       {/* REVIEWS */}
-      <section style={{ background: '#1a0a0f', padding: '52px 28px' }}>
+      <section style={{ background: '#fff', padding: '52px 28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: 'rgba(250,216,233,.6)', marginBottom: 8 }}>Verified Reviews</div>
-            <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, color: '#fff', lineHeight: 1.15 }}>What Houston moms are saying</h2>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 8 }}>Verified Reviews</div>
+            <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, color: '#1a0a0f', lineHeight: 1.15 }}>What Houston moms are saying</h2>
           </div>
         </div>
 
         {/* Trust pills */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
           {['Every review requires a contract or receipt','No fake reviews. No pay-to-win ratings.','Only moms who booked can leave a review'].map(t => (
-            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.15)', borderRadius: 20, padding: '8px 16px' }}>
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(201,124,138,.06)', border: '0.5px solid rgba(201,124,138,.2)', borderRadius: 20, padding: '8px 16px' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A040" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
-              <span style={{ fontSize: 12, color: 'rgba(250,216,233,.75)' }}>{t}</span>
+              <span style={{ fontSize: 12, color: '#7a5c65' }}>{t}</span>
             </div>
           ))}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
           {REVIEWS.map(r => (
-            <div key={r.name} style={{ background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.12)', borderRadius: 14, padding: 20 }}>
+            <div key={r.name} style={{ background: 'rgba(26,10,15,.03)', border: '0.5px solid rgba(201,124,138,.15)', borderRadius: 14, padding: 20 }}>
               <div style={{ display: 'flex', gap: 11, alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 500, color: r.textColor, flexShrink: 0 }}>{r.initials}</div>
                 <div>
@@ -337,7 +337,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div style={{ marginBottom: 10 }}><Stars rating={r.rating} /></div>
-              <p style={{ fontSize: 13.5, color: 'rgba(250,216,233,.8)', lineHeight: 1.7, fontStyle: 'italic', marginBottom: 12, borderLeft: '2px solid #C97C8A', paddingLeft: 12 }}>{r.body}</p>
+              <p style={{ fontSize: 13.5, color: '#4a3040', lineHeight: 1.7, fontStyle: 'italic', marginBottom: 12, borderLeft: '2px solid #C97C8A', paddingLeft: 12 }}>{r.body}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#5DCAA5', fontWeight: 500 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
                 Verified — contract submitted
@@ -427,7 +427,7 @@ export default function HomePage() {
             <h2 className="font-serif" style={{ fontSize: 28, color: '#fff', marginBottom: 6 }}>Are you a quinceañera vendor in Houston?</h2>
             <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.8)', maxWidth: 420, lineHeight: 1.6, marginBottom: 16 }}>Get in front of thousands of Houston moms actively planning right now. Free to list. Upgrade when ready. No contracts.</p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {['Free Listing','Verified · $59/mo'].map(t => (
+              {['Free Listing','Verified · $49/mo'].map(t => (
                 <div key={t} style={{ background: 'rgba(255,255,255,.18)', border: '0.5px solid rgba(255,255,255,.3)', borderRadius: 20, padding: '8px 18px', fontSize: 12.5, color: '#fff' }}>{t}</div>
               ))}
               <div style={{ background: '#C9A040', border: '0.5px solid #C9A040', borderRadius: 20, padding: '8px 18px', fontSize: 12.5, color: '#1a0a0f', fontWeight: 700 }}>Featured · $129/mo</div>
