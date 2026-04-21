@@ -184,7 +184,7 @@ export default function VendorsPage() {
                 const isClaimed = v.is_claimed
                 return (
                   <Link key={v.id} href={`/vendors/${v.slug}`}
-                    style={{ textDecoration: 'none', background: '#fff', border: `0.5px solid ${v.tier === 'premier' ? 'rgba(201,160,64,.5)' : v.tier === 'featured' ? 'rgba(201,160,64,.3)' : 'rgba(201,124,138,.18)'}`, borderRadius: 16, overflow: 'hidden', display: 'block' }}>
+                    style={{ textDecoration: 'none', background: '#fff', border: `0.5px solid ${(v.tier as string) === 'premier' ? 'rgba(201,160,64,.5)' : v.tier === 'featured' ? 'rgba(201,160,64,.3)' : 'rgba(201,124,138,.18)'}`, borderRadius: 16, overflow: 'hidden', display: 'block' }}>
                     <div style={{ height: 180, position: 'relative', overflow: 'hidden' }}>
                       {v.cover_photo_url ? (
                         <div style={{ width: '100%', height: '100%', backgroundImage: `url(${v.cover_photo_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
