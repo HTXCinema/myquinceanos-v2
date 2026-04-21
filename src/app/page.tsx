@@ -212,18 +212,20 @@ export default function HomePage() {
         </div>
 
         {/* LIVE BUDGET CALCULATOR */}
-        <div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
-            <div>
-              <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
-              <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
-              <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(totalRef.current)}</div>
-            </div>
-          </div>
-
+    {/* LIVE BUDGET CALCULATOR */}
+<div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
+    <div>
+      <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
+      <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
+      <div id="calc-total-display" className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(totalRef.current)}</div>
+    </div>
+  </div>
+  <div id="calc-mount" />
+</div>
           {/* Presets */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
             {[8000, 12000, 18500, 25000, 35000].map(preset => (
