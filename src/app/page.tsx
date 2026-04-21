@@ -111,11 +111,10 @@ export default function HomePage() {
     syncDOM()
   }
 
-  function onCatChange(key: string, val: number) {
-    amtsRef.current[key] = val
-    totalRef.current = Object.values(amtsRef.current).reduce((a, b) => a + b, 0)
-    syncDOM()
-  }
+ function onCatChange(key: string, val: number) {
+  amtsRef.current[key] = val
+  syncDOM()
+}
 
   const visibleVendors = [
     FEATURED_VENDORS[carouselIdx % FEATURED_VENDORS.length],
