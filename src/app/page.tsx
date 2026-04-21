@@ -129,6 +129,9 @@ export default function HomePage() {
       render()
     }
 
+    const disp = document.getElementById('calc-total-display')
+if (disp) disp.textContent = f(total)
+
     function onCat(key: string, val: number) {
       const diff = val - amts[key]
       const others = SLIDERS.map(s => s.key).filter(k => k !== key)
@@ -150,7 +153,7 @@ export default function HomePage() {
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
         <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">Total Budget</span>
         <input id="vsl-total" type="range" min="5000" max="50000" step="500" value="${total}" style="flex:1;accent-color:#C9A040;background:linear-gradient(to right,#C9A040 ${((total-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
-        <span id="vav-total" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(total)}</span>
+        <span id="<span id="vav-total" ...>${f(total)}</span>" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(total)}</span>
       </div>
       <div style="height:0.5px;background:rgba(255,255,255,.08);margin:10px 0 14px"></div>
       <div style="display:flex;flex-direction:column;gap:10px">
@@ -172,6 +175,9 @@ export default function HomePage() {
     document.getElementById('vsl-total')?.addEventListener('input', e => {
       scaleAll(Number((e.target as HTMLInputElement).value))
     })
+
+    const tLabel = document.getElementById('vav-total')
+if (tLabel) tLabel.textContent = f(total)
 
     SLIDERS.forEach(s => {
       document.getElementById('vsl-' + s.key)?.addEventListener('input', e => {
