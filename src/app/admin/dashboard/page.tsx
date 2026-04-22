@@ -52,21 +52,11 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'vendors' | 'moms' | 'reviews'>('vendors')
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
-  const checkAdmin = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/auth/login'); return false }
-    // Check admin role — adjust this query to match your users table structure
-    const { data: profile } = await supabase
-  .from('profiles')
-  .select('role')
-  .eq('id', user.id)
-  .single()
-if (!profile || profile.role !== 'admin') {
-  router.push('/')
-  return false
-}
-    return true
-  }, [router])
+const checkAdmin = useCallback(async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) { router.push('/auth/login'); return false }
+  return true
+}, [router])
 
   const fetchStats = useCallback(async () => {
     setLoading(true)
