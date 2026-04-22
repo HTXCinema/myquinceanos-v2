@@ -173,13 +173,13 @@ export default function VendorDashboard() {
         {/* EDIT PROFILE */}
         {activeTab === 'profile' && (
           <div style={{ maxWidth: 680 }}>
-<VendorPhotoUpload
+{vendor && <VendorPhotoUpload
   vendorId={vendor.id}
   vendorSlug={vendor.slug || ''}
   currentCoverUrl={vendor.cover_photo_url || ''}
   tier={vendor.tier || 'free'}
   onUpdate={(url) => setVendor(v => v ? { ...v, cover_photo_url: url } : v)}
-/>
+/>}
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               {[
