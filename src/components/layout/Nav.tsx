@@ -48,7 +48,8 @@ export default function Nav() {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  const isDark = pathname === '/' || pathname.startsWith('/vendors') || pathname.startsWith('/auth')
+ const isDark = pathname === '/' || pathname.startsWith('/vendors') || pathname.startsWith('/auth')
+const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
 
   return (
     <>
@@ -75,7 +76,7 @@ export default function Nav() {
             fontFamily: "'Playfair Display', serif",
             fontSize: 17,
             fontWeight: 600,
-            color: isDark ? '#fff' : '#1a0a0f',
+            color: mobileIconColor,
             letterSpacing: '-0.3px',
           }}>MyQuinceAños</span>
         </Link>
