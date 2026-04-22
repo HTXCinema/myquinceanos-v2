@@ -53,8 +53,6 @@ export default function AdminDashboard() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
 const checkAdmin = useCallback(async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) { router.push('/auth/login'); return false }
   return true
 }, [router])
 
