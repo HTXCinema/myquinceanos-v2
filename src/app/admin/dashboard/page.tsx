@@ -1,3 +1,10 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+)
+
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
@@ -138,6 +145,20 @@ export default function AdminDashboard() {
     return () => clearInterval(interval)
   }, [fetchStats])
 
+useEffect(() => {
+  const checkAdmin = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/auth/login'); return }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.role !== 'admin') router.push('/')
+  }
+  checkAdmin()
+}, [router])
+  
   const projections = stats ? (() => {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     const now = new Date()
