@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/layout/Nav'
 import Link from 'next/link'
 import type { Vendor } from '@/types'
+import VendorPhotoUpload from '@/components/vendor/VendorPhotoUpload'
 
 const TIER_FEATURES = {
   free: ['Basic listing in directory', 'Appears in category searches', 'Business name & description'],
@@ -172,6 +173,14 @@ export default function VendorDashboard() {
         {/* EDIT PROFILE */}
         {activeTab === 'profile' && (
           <div style={{ maxWidth: 680 }}>
+<VendorPhotoUpload
+  vendorId={vendor.id}
+  vendorSlug={vendor.slug || ''}
+  currentCoverUrl={vendor.cover_photo_url || ''}
+  tier={vendor.tier || 'free'}
+  onUpdate={(url) => setVendor(v => v ? { ...v, cover_photo_url: url } : v)}
+/>
+            
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               {[
                 { key: 'phone', label: 'Phone', placeholder: '(713) 555-0100', type: 'tel' },
