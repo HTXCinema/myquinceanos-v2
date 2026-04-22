@@ -95,10 +95,9 @@ const checkAdmin = useCallback(async () => {
         .map(v => ({ id: v.id, business_name: v.business_name, tier: v.tier || 'free', created_at: v.created_at, category: v.category || '' }))
 
       // Mom/user counts — adjust table name if yours is different
-      const { data: users } = await supabase
-        .from('users')
-        .select('id, email, created_at, role')
-        .neq('role', 'admin')
+     const { data: users } = await supabase
+  .from('profiles')
+  .select('id, email, created_at, role')
 
       const allUsers = users || []
       const momsTotal = allUsers.length
