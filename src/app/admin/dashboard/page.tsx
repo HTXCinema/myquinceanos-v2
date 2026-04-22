@@ -57,14 +57,14 @@ export default function AdminDashboard() {
     if (!user) { router.push('/auth/login'); return false }
     // Check admin role — adjust this query to match your users table structure
     const { data: profile } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    if (!profile || profile.role !== 'admin') {
-      router.push('/')
-      return false
-    }
+  .from('profiles')
+  .select('role')
+  .eq('id', user.id)
+  .single()
+if (!profile || profile.role !== 'admin') {
+  router.push('/')
+  return false
+}
     return true
   }, [router])
 
