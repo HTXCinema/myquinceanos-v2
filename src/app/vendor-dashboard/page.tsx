@@ -255,8 +255,8 @@ export default function VendorDashboard() {
             <p style={{ fontSize: 14, color: '#7a5c65', marginBottom: 28 }}>Get in front of more Houston moms. Upgrade anytime, cancel anytime.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               {[
-                { key: 'verified', name: 'Verified', price: '$49/mo', payLink: 'https://square.link/u/TedIpvsu' },
-                { key: 'featured', name: 'Featured', price: '$129/mo', payLink: 'https://square.link/u/9tAi4sdT' },
+               { key: 'featured', name: 'Featured', price: '$49/mo', payLink: 'https://square.link/u/TedIpvsu' },
+{ key: 'premier', name: 'Premier', price: '$129/mo', payLink: 'https://square.link/u/9tAi4sdT' },
               ].filter(t => t.key !== tier).map(t => (
                 <div key={t.key} style={{ background: t.key === 'featured' ? 'rgba(201,160,64,.08)' : '#fff', border: `0.5px solid ${t.key === 'featured' ? 'rgba(201,160,64,.3)' : 'rgba(201,124,138,.2)'}`, borderRadius: 16, padding: 24 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: '#7a5c65', marginBottom: 6 }}>{t.name}</div>
