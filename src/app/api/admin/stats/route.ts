@@ -1,15 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 
 export async function GET() {
-  const cookieStore = cookies()
-  const token = cookieStore.get('sb-access-token')?.value
-
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
   const { data: vendors } = await supabase
