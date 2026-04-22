@@ -120,6 +120,49 @@ export default function VendorDashboard() {
         </div>
       </div>
 
+{activeTab === 'upgrade' && (
+  <div style={{ maxWidth: 700 }}>
+    {tier === 'premier' ? (
+      <div style={{ textAlign: 'center', padding: '48px 0' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⭐</div>
+        <h2 className="font-serif" style={{ fontSize: 32, color: '#1a0a0f', marginBottom: 12 }}>You're on our best plan</h2>
+        <p style={{ fontSize: 15, color: '#7a5c65', lineHeight: 1.7, maxWidth: 380, margin: '0 auto 24px' }}>
+          You have Premier — the highest tier on MyQuinceAños. You're already getting maximum visibility, homepage placement, and full access to every feature.
+        </p>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(201,160,64,.1)', border: '0.5px solid rgba(201,160,64,.3)', borderRadius: 30, padding: '10px 20px' }}>
+          <span style={{ fontSize: 13, color: '#C9A040', fontWeight: 600 }}>Premier · $129/mo</span>
+        </div>
+      </div>
+    ) : (
+      <div>
+        <h2 className="font-serif" style={{ fontSize: 28, marginBottom: 8 }}>Upgrade your listing</h2>
+        <p style={{ fontSize: 14, color: '#7a5c65', marginBottom: 28 }}>Get in front of more Houston moms. Upgrade anytime, cancel anytime.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {[
+            { key: 'featured', name: 'Featured', price: '$49/mo', payLink: 'https://square.link/u/TedIpvsu' },
+            { key: 'premier', name: 'Premier', price: '$129/mo', payLink: 'https://square.link/u/9tAi4sdT' },
+          ].filter(t => t.key !== tier).map(t => (
+            <div key={t.key} style={{ background: t.key === 'premier' ? 'rgba(201,160,64,.08)' : '#fff', border: `0.5px solid ${t.key === 'premier' ? 'rgba(201,160,64,.3)' : 'rgba(201,124,138,.2)'}`, borderRadius: 16, padding: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: '#7a5c65', marginBottom: 6 }}>{t.name}</div>
+              <div className="font-serif" style={{ fontSize: 32, fontWeight: 600, marginBottom: 16 }}>{t.price}</div>
+              {TIER_FEATURES[t.key as keyof typeof TIER_FEATURES].map(f => (
+                <div key={f} style={{ display: 'flex', gap: 8, marginBottom: 8, fontSize: 13, color: '#555' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97C8A" strokeWidth="2.5" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20,6 9,17 4,12"/></svg>
+                  {f}
+                </div>
+              ))}
+              <a href={t.payLink} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'block', textAlign: 'center', background: t.key === 'premier' ? '#C9A040' : '#C97C8A', color: t.key === 'premier' ? '#1a0a0f' : '#fff', padding: '12px 0', borderRadius: 24, fontSize: 13, fontWeight: 600, textDecoration: 'none', marginTop: 18 }}>
+                Upgrade to {t.name} →
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+      
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 28px' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '0.5px solid rgba(201,124,138,.15)' }}>
