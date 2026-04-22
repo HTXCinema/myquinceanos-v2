@@ -36,7 +36,6 @@ const CAT_BG_COLORS = [
   'linear-gradient(155deg,#301520 0%,#704050 55%,#b07080 100%)',
 ]
 
-// Fallback vendors shown until real featured vendors exist in DB
 const FALLBACK_VENDORS = [
   { id: '', slug: '', business_name: 'DreamLite Productions', categories: { name: 'Photography & Video' }, avg_rating: 5.0, review_count: 52, starting_price: 2800, myquince_perk: 'Free 1-hr engagement session', cover_photo_url: '', tier: 'featured' },
   { id: '', slug: '', business_name: 'Bell Tower on 34th', categories: { name: 'Venues' }, avg_rating: 4.9, review_count: 53, starting_price: 5500, myquince_perk: 'Free venue lighting upgrade', cover_photo_url: '', tier: 'featured' },
@@ -53,16 +52,118 @@ const REVIEWS = [
   { initials: 'SG', name: 'Sofia Guerrero', vendor: "Goyita's Catering", date: 'Mar 2025', rating: 4, body: '"Food was delicious, presentation gorgeous, 200 guests fed on time. Setup was 20 min late but the quality made up for it."', color: 'rgba(239,159,39,.2)', textColor: '#fac775' },
 ]
 
-const SLIDERS = [
-  { key: 'venue',  label: 'Venue',         color: '#C97C8A', init: 4810 },
-  { key: 'photo',  label: 'Photo / Video', color: '#C9A040', init: 3145 },
-  { key: 'cater',  label: 'Catering',      color: '#5DCAA5', init: 3885 },
-  { key: 'dj',     label: 'DJ / Music',    color: '#AFA9EC', init: 1850 },
-  { key: 'dress',  label: 'Dress',         color: '#F4C0D1', init: 1665 },
-  { key: 'decor',  label: 'Decor',         color: '#FAC775', init: 1295 },
-  { key: 'makeup', label: 'Makeup & Hair', color: '#F0997B', init:  925 },
-  { key: 'other',  label: 'Other',         color: '#B4B2A9', init:  925 },
+const SLIDER_DEFS = [
+  { key: 'venue',  label: 'Venue',         color: '#C97C8A', pct: 0.26 },
+  { key: 'photo',  label: 'Photo / Video', color: '#C9A040', pct: 0.17 },
+  { key: 'cater',  label: 'Catering',      color: '#5DCAA5', pct: 0.21 },
+  { key: 'dj',     label: 'DJ / Music',    color: '#AFA9EC', pct: 0.10 },
+  { key: 'dress',  label: 'Dress',         color: '#F4C0D1', pct: 0.09 },
+  { key: 'decor',  label: 'Decor',         color: '#FAC775', pct: 0.07 },
+  { key: 'makeup', label: 'Makeup & Hair', color: '#F0997B', pct: 0.05 },
+  { key: 'other',  label: 'Other',         color: '#B4B2A9', pct: 0.05 },
 ]
+
+const PRESETS = [8000, 12000, 18500, 25000, 35000]
+const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
+
+// ── BUDGET CALCULATOR — pure React state, no DOM manipulation ──
+function BudgetCalculator() {
+  const DEFAULT_TOTAL = 18500
+  const [total, setTotal] = useState(DEFAULT_TOTAL)
+  const [amts, setAmts] = useState<Record<string, number>>(
+    Object.fromEntries(SLIDER_DEFS.map(s => [s.key, Math.round(DEFAULT_TOTAL * s.pct)]))
+  )
+
+  const sliderBg = (color: string, value: number, min: number, max: number) => {
+    const pct = max > min ? ((value - min) / (max - min)) * 100 : 0
+    return `linear-gradient(to right, ${color} ${pct.toFixed(1)}%, rgba(255,255,255,.12) ${pct.toFixed(1)}%)`
+  }
+
+  const handleTotal = (newTotal: number) => {
+    setTotal(newTotal)
+    setAmts(prev => {
+      const prevTotal = Object.values(prev).reduce((a, b) => a + b, 0)
+      if (prevTotal === 0) return Object.fromEntries(SLIDER_DEFS.map(s => [s.key, Math.round(newTotal * s.pct)]))
+      const ratio = newTotal / prevTotal
+      return Object.fromEntries(Object.entries(prev).map(([k, v]) => [k, Math.round(v * ratio)]))
+    })
+  }
+
+  const handleCat = (key: string, val: number) => {
+    setAmts(prev => {
+      const diff = val - prev[key]
+      const others = SLIDER_DEFS.map(s => s.key).filter(k => k !== key)
+      const otherSum = others.reduce((a, k) => a + prev[k], 0)
+      const next = { ...prev, [key]: val }
+      others.forEach(k => {
+        const share = otherSum > 0 ? prev[k] / otherSum : 1 / others.length
+        next[k] = Math.max(0, Math.round(prev[k] - diff * share))
+      })
+      return next
+    })
+  }
+
+  const catMax = Math.round(total * 0.65)
+
+  return (
+    <div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 24 }}>
+        <div>
+          <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
+          <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
+          <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{fmt(total)}</div>
+        </div>
+      </div>
+
+      {/* Preset buttons */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+        {PRESETS.map(p => (
+          <button key={p} onClick={() => handleTotal(p)}
+            style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, cursor: 'pointer', border: `0.5px solid ${total === p ? '#C9A040' : 'rgba(255,255,255,.18)'}`, background: total === p ? 'rgba(201,160,64,.18)' : 'transparent', color: total === p ? '#C9A040' : 'rgba(250,216,233,.5)', transition: 'all 0.15s' }}>
+            {fmt(p)}
+          </button>
+        ))}
+      </div>
+
+      {/* Total slider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>Total Budget</span>
+        <input type="range" min={5000} max={50000} step={500} value={total}
+          onChange={e => handleTotal(Number(e.target.value))}
+          style={{ flex: 1, height: 4, borderRadius: 2, cursor: 'pointer', WebkitAppearance: 'none', appearance: 'none', outline: 'none', accentColor: '#C9A040', background: sliderBg('#C9A040', total, 5000, 50000) }} />
+        <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(total)}</span>
+      </div>
+
+      <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '14px 0' }} />
+
+      {/* Category sliders */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {SLIDER_DEFS.map(s => {
+          const val = amts[s.key] ?? 0
+          const pct = total > 0 ? Math.round((val / total) * 100) : 0
+          return (
+            <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 12, color: 'rgba(250,216,233,.55)', width: 110, flexShrink: 0 }}>{s.label}</span>
+              <input type="range" min={0} max={catMax} step={50} value={Math.min(val, catMax)}
+                onChange={e => handleCat(s.key, Number(e.target.value))}
+                style={{ flex: 1, height: 4, borderRadius: 2, cursor: 'pointer', WebkitAppearance: 'none', appearance: 'none', outline: 'none', accentColor: s.color, background: sliderBg(s.color, Math.min(val, catMax), 0, catMax) }} />
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#fff', width: 70, textAlign: 'right' }}>{fmt(val)}</span>
+              <span style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', width: 38, textAlign: 'right' }}>{pct}%</span>
+            </div>
+          )
+        })}
+      </div>
+
+      <div style={{ marginTop: 16, fontSize: 12, textAlign: 'center', padding: '8px', borderRadius: 8, background: 'rgba(93,202,165,.1)', color: '#5DCAA5' }}>
+        Drag any category slider to customize — or tap a preset above
+      </div>
+    </div>
+  )
+}
 
 function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
   return (
@@ -80,7 +181,6 @@ export default function HomePage() {
   const carouselRef = useRef<NodeJS.Timeout | null>(null)
   const supabase = createClient()
 
-  // Load featured vendors from Supabase
   useEffect(() => {
     async function loadFeatured() {
       const { data } = await supabase
@@ -88,116 +188,19 @@ export default function HomePage() {
         .select('id, slug, business_name, categories(name), avg_rating, review_count, starting_price, myquince_perk, cover_photo_url, tier')
         .in('tier', ['featured', 'premier'])
         .eq('is_active', true)
-        .order('tier', { ascending: false }) // premier first, then featured
+        .order('tier', { ascending: false })
         .limit(9)
       if (data && data.length > 0) setFeaturedVendors(data)
     }
     loadFeatured()
   }, [])
 
-  // Carousel auto-rotate
   useEffect(() => {
     carouselRef.current = setInterval(() => {
       setCarouselIdx(i => (i + 1) % featuredVendors.length)
     }, 4000)
     return () => { if (carouselRef.current) clearInterval(carouselRef.current) }
   }, [featuredVendors.length])
-
-  // Budget calculator — pure vanilla JS
-  useEffect(() => {
-    const mount = document.getElementById('calc-mount')
-    if (!mount) return
-
-    const amts: Record<string, number> = Object.fromEntries(SLIDERS.map(s => [s.key, s.init]))
-    let total = SLIDERS.reduce((a, s) => a + s.init, 0)
-    const f = (n: number) => '$' + Math.round(n).toLocaleString()
-
-    function render() {
-      const disp = document.getElementById('calc-total-display')
-      if (disp) disp.textContent = f(total)
-      const tsl = document.getElementById('vsl-total') as HTMLInputElement | null
-      if (tsl) {
-        tsl.value = String(total)
-        tsl.style.background = `linear-gradient(to right,#C9A040 ${((total-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%)`
-      }
-      SLIDERS.forEach(s => {
-        const sl = document.getElementById('vsl-' + s.key) as HTMLInputElement | null
-        const av = document.getElementById('vav-' + s.key)
-        const pv = document.getElementById('vpv-' + s.key)
-        if (!sl || !av || !pv) return
-        sl.max = String(Math.round(total * 0.6))
-        sl.value = String(amts[s.key])
-        const fp = amts[s.key] / total * 100
-        sl.style.background = `linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%)`
-        av.textContent = f(amts[s.key])
-        pv.textContent = Math.round(fp) + '%'
-      })
-      document.querySelectorAll<HTMLElement>('.calc-preset').forEach(b => {
-        const v = parseInt(b.dataset.val || '0')
-        if (v === total) { b.style.background = 'rgba(201,160,64,.18)'; b.style.borderColor = '#C9A040'; b.style.color = '#C9A040' }
-        else { b.style.background = 'transparent'; b.style.borderColor = 'rgba(255,255,255,.18)'; b.style.color = 'rgba(250,216,233,.5)' }
-      })
-    }
-
-    function scaleAll(newTotal: number) {
-      const ratio = newTotal / total
-      SLIDERS.forEach(s => { amts[s.key] = Math.round(amts[s.key] * ratio) })
-      total = newTotal
-      render()
-    }
-
-    function onCat(key: string, val: number) {
-      const diff = val - amts[key]
-      const others = SLIDERS.map(s => s.key).filter(k => k !== key)
-      const otherSum = others.reduce((a, k) => a + amts[k], 0)
-      others.forEach(k => {
-        const share = otherSum > 0 ? amts[k] / otherSum : 1 / others.length
-        amts[k] = Math.max(0, Math.round(amts[k] - diff * share))
-      })
-      amts[key] = val
-      render()
-    }
-
-    mount.innerHTML = `
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-        ${[8000,12000,18500,25000,35000].map(p =>
-          `<button class="calc-preset" data-val="${p}" style="padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;background:${total===p?'rgba(201,160,64,.18)':'transparent'};border:0.5px solid ${total===p?'#C9A040':'rgba(255,255,255,.18)'};color:${total===p?'#C9A040':'rgba(250,216,233,.5)'}">${f(p)}</button>`
-        ).join('')}
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
-        <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">Total Budget</span>
-        <input id="vsl-total" type="range" min="5000" max="50000" step="500" value="${total}" style="flex:1;accent-color:#C9A040;background:linear-gradient(to right,#C9A040 ${((total-5000)/45000*100).toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
-        <span id="vav-total" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(total)}</span>
-      </div>
-      <div style="height:0.5px;background:rgba(255,255,255,.08);margin:10px 0 14px"></div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${SLIDERS.map(s => {
-          const fp = amts[s.key] / total * 100
-          return `<div style="display:flex;align-items:center;gap:12px">
-            <span style="font-size:12px;color:rgba(250,216,233,.55);width:110px;flex-shrink:0">${s.label}</span>
-            <input id="vsl-${s.key}" type="range" min="0" max="${Math.round(total * 0.6)}" step="50" value="${amts[s.key]}" style="flex:1;accent-color:${s.color};background:linear-gradient(to right,${s.color} ${fp.toFixed(1)}%,rgba(255,255,255,.1) 0%);height:4px;border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none">
-            <span id="vav-${s.key}" style="font-size:12px;font-weight:500;color:#fff;width:70px;text-align:right">${f(amts[s.key])}</span>
-            <span id="vpv-${s.key}" style="font-size:11px;color:rgba(250,216,233,.35);width:38px;text-align:right">${Math.round(fp)}%</span>
-          </div>`
-        }).join('')}
-      </div>
-      <div style="margin-top:14px;font-size:12px;text-align:center;padding:8px;border-radius:8px;background:rgba(93,202,165,.1);color:#5DCAA5">
-        Drag any category slider to customize — or tap a preset above
-      </div>
-    `
-
-    document.getElementById('vsl-total')?.addEventListener('input', e => {
-      scaleAll(Number((e.target as HTMLInputElement).value))
-    })
-    SLIDERS.forEach(s => {
-      document.getElementById('vsl-' + s.key)?.addEventListener('input', e => {
-        onCat(s.key, Number((e.target as HTMLInputElement).value))
-      })
-    })
-    document.querySelectorAll('.calc-preset').forEach(b => {
-      b.addEventListener('click', () => scaleAll(parseInt((b as HTMLElement).dataset.val || '0')))
-    })
-  }, [])
 
   const visibleVendors = featuredVendors.length >= 3 ? [
     featuredVendors[carouselIdx % featuredVendors.length],
@@ -213,27 +216,18 @@ export default function HomePage() {
       <section style={{ background: '#1a0a0f', position: 'relative', overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', height: 340, gap: 3 }}>
           {['Bell Tower on 34th', 'DreamLite Productions', 'La Hacienda Grand Ballroom'].map((label, i) => (
-            <div key={i} style={{
-              background: `linear-gradient(160deg, ${['#3d1520,#7a3545,#c07080', '#1a0a0f,#4a2030,#8a4060', '#2a1018,#5a2535,#a06080'][i]})`,
-              position: 'relative'
-            }}>
+            <div key={i} style={{ background: `linear-gradient(160deg, ${['#3d1520,#7a3545,#c07080','#1a0a0f,#4a2030,#8a4060','#2a1018,#5a2535,#a06080'][i]})`, position: 'relative' }}>
               <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.5)' }} />
-              <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(26,10,15,.72)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 20, border: '0.5px solid rgba(255,255,255,.15)' }}>
-                {label}
-              </div>
+              <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(26,10,15,.72)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 20, border: '0.5px solid rgba(255,255,255,.15)' }}>{label}</div>
             </div>
           ))}
         </div>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 2 }}>
-          <div style={{ background: 'rgba(201,160,64,.18)', border: '0.5px solid rgba(201,160,64,.4)', color: '#C9A040', fontSize: 11, fontWeight: 500, padding: '5px 14px', borderRadius: 20, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 14 }}>
-            Houston's Quinceañera Planning Platform
-          </div>
+          <div style={{ background: 'rgba(201,160,64,.18)', border: '0.5px solid rgba(201,160,64,.4)', color: '#C9A040', fontSize: 11, fontWeight: 500, padding: '5px 14px', borderRadius: 20, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 14 }}>Houston's Quinceañera Planning Platform</div>
           <h1 className="font-serif text-center" style={{ fontSize: 44, fontWeight: 600, color: '#fff', lineHeight: 1.15, marginBottom: 10, maxWidth: 560 }}>
             Plan Your Daughter's <em style={{ color: '#FAD8E9' }}>Perfect</em> Quinceañera
           </h1>
-          <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 14, textAlign: 'center', marginBottom: 22, maxWidth: 440, lineHeight: 1.6 }}>
-            Trusted vendors, verified reviews from real moms, free planning tools — all in one place.
-          </p>
+          <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 14, textAlign: 'center', marginBottom: 22, maxWidth: 440, lineHeight: 1.6 }}>Trusted vendors, verified reviews from real moms, free planning tools — all in one place.</p>
           <div style={{ background: 'rgba(255,255,255,.96)', borderRadius: 14, padding: '6px 6px 6px 16px', display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 520 }}>
             <select style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#555', flex: 1, outline: 'none', padding: '6px 0' }}>
               <option>All Categories</option>
@@ -242,19 +236,16 @@ export default function HomePage() {
             </select>
             <div style={{ width: 0.5, height: 20, background: '#ddd' }} />
             <select style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#555', outline: 'none', padding: '6px 0', width: 130 }}>
-              <option>Houston, TX</option><option>Katy, TX</option>
-              <option>Pearland, TX</option><option>Sugar Land, TX</option>
+              <option>Houston, TX</option><option>Katy, TX</option><option>Pearland, TX</option><option>Sugar Land, TX</option>
             </select>
-            <Link href="/vendors" style={{ background: '#C97C8A', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              Search
-            </Link>
+            <Link href="/vendors" style={{ background: '#C97C8A', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap' }}>Search</Link>
           </div>
         </div>
       </section>
 
       {/* STATS */}
       <div style={{ background: '#C97C8A', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-        {[['127+', 'Houston Vendors'], ['12', 'Categories'], ['100%', 'Mom-Verified Reviews'], ['Free', 'To Start Planning']].map(([n, l]) => (
+        {[['127+','Houston Vendors'],['12','Categories'],['100%','Mom-Verified Reviews'],['Free','To Start Planning']].map(([n,l]) => (
           <div key={l} style={{ padding: '14px 8px', textAlign: 'center', borderRight: '0.5px solid rgba(255,255,255,.25)' }}>
             <span className="font-serif block" style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{n}</span>
             <span className="block" style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', marginTop: 1 }}>{l}</span>
@@ -287,24 +278,10 @@ export default function HomePage() {
             </Link>
           ))}
         </div>
-
-        {/* LIVE BUDGET CALCULATOR */}
-        <div id="calculator" style={{ background: '#1a0a0f', borderRadius: 18, padding: 32, marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
-            <div>
-              <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Live Budget Calculator</h3>
-              <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)' }}>Set your total — every category scales automatically</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: 'rgba(250,216,233,.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>Total Budget</div>
-              <div id="calc-total-display" className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>$18,500</div>
-            </div>
-          </div>
-          <div id="calc-mount" />
-        </div>
+        <BudgetCalculator />
       </section>
 
-      {/* FEATURED VENDORS — CAROUSEL */}
+      {/* FEATURED VENDORS */}
       <section style={{ padding: '48px 28px', background: '#FDF6F0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
           <div>
@@ -314,11 +291,11 @@ export default function HomePage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button onClick={() => { setCarouselIdx(i => (i - 1 + featuredVendors.length) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
               style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="9,2 4,7 9,12" /></svg>
+              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="9,2 4,7 9,12"/></svg>
             </button>
             <button onClick={() => { setCarouselIdx(i => (i + 1) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
               style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="5,2 10,7 5,12" /></svg>
+              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="5,2 10,7 5,12"/></svg>
             </button>
             <Link href="/vendors?tier=featured" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all featured →</Link>
           </div>
@@ -332,9 +309,7 @@ export default function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
           {visibleVendors.map((v, i) => {
             const catName = (v.categories as any)?.name || ''
-            const bg = v.cover_photo_url
-              ? undefined
-              : CAT_BG_COLORS[i % CAT_BG_COLORS.length]
+            const bg = v.cover_photo_url ? undefined : CAT_BG_COLORS[i % CAT_BG_COLORS.length]
             const profileLink = v.slug ? `/vendors/${v.slug}` : '/vendors'
             return (
               <Link key={v.id || i} href={profileLink} style={{ textDecoration: 'none', background: '#fff', border: `0.5px solid ${v.tier === 'premier' ? 'rgba(201,160,64,.4)' : 'rgba(201,124,138,.18)'}`, borderRadius: 16, overflow: 'hidden', display: 'block' }}>
@@ -406,9 +381,9 @@ export default function HomePage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-          {['Every review requires a contract or receipt', 'No fake reviews. No pay-to-win ratings.', 'Only moms who booked can leave a review'].map(t => (
+          {['Every review requires a contract or receipt','No fake reviews. No pay-to-win ratings.','Only moms who booked can leave a review'].map(t => (
             <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.15)', borderRadius: 20, padding: '8px 16px' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A040" strokeWidth="2.5"><polyline points="20,6 9,17 4,12" /></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C9A040" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
               <span style={{ fontSize: 12, color: 'rgba(250,216,233,.75)' }}>{t}</span>
             </div>
           ))}
@@ -426,7 +401,7 @@ export default function HomePage() {
               <div style={{ marginBottom: 10 }}><Stars rating={r.rating} /></div>
               <p style={{ fontSize: 13.5, color: 'rgba(250,216,233,.8)', lineHeight: 1.7, fontStyle: 'italic', marginBottom: 12, borderLeft: '2px solid #C97C8A', paddingLeft: 12 }}>{r.body}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#5DCAA5', fontWeight: 500 }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12" /></svg>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
                 Verified — contract submitted
               </div>
             </div>
@@ -436,10 +411,10 @@ export default function HomePage() {
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: 'rgba(250,216,233,.5)', marginBottom: 20 }}>How our review system works</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
             {[
-              ['01', 'Mom books a vendor', "After booking through MyQuinceAños, she gets an invite to share her experience once the event is done."],
-              ['02', 'Submit proof of purchase', "She uploads her contract or receipt. Our team verifies it's real before the review ever goes live."],
-              ['03', 'Honest reviews stay forever', "Vendors can't buy, delete, or bury bad reviews. The truth stays visible for every mom who comes after."],
-            ].map(([n, t, d]) => (
+              ['01','Mom books a vendor',"After booking through MyQuinceAños, she gets an invite to share her experience once the event is done."],
+              ['02','Submit proof of purchase',"She uploads her contract or receipt. Our team verifies it's real before the review ever goes live."],
+              ['03','Honest reviews stay forever',"Vendors can't buy, delete, or bury bad reviews. The truth stays visible for every mom who comes after."],
+            ].map(([n,t,d]) => (
               <div key={n} style={{ background: 'rgba(255,255,255,.04)', border: '0.5px solid rgba(250,216,233,.1)', borderRadius: 14, padding: 26 }}>
                 <div className="font-serif" style={{ fontSize: 44, color: '#C9A040', lineHeight: 1, marginBottom: 10 }}>{n}</div>
                 <h3 style={{ fontSize: 14, fontWeight: 500, color: '#fff', marginBottom: 6 }}>{t}</h3>
@@ -450,17 +425,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* MOM LOGIN / SAVE VENDORS */}
+      {/* MOM CTA */}
       <section style={{ background: '#FAD8E9', padding: '40px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
         <div>
           <h2 className="font-serif" style={{ fontSize: 28, color: '#1a0a0f', marginBottom: 6 }}>Save your vendors. Track your dates.</h2>
-          <p style={{ fontSize: 13.5, color: '#7a5c65', maxWidth: 400, lineHeight: 1.6, marginBottom: 16 }}>
-            Create a free mom account — saved vendors, event countdown, payment due dates, planning checklist, all in one dashboard.
-          </p>
+          <p style={{ fontSize: 13.5, color: '#7a5c65', maxWidth: 400, lineHeight: 1.6, marginBottom: 16 }}>Create a free mom account — saved vendors, event countdown, payment due dates, planning checklist, all in one dashboard.</p>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-            {['Save & compare vendors', 'Track payment due dates', 'Planning checklist', 'Event countdown'].map(f2 => (
+            {['Save & compare vendors','Track payment due dates','Planning checklist','Event countdown'].map(f2 => (
               <div key={f2} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#7a5c65' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97C8A" strokeWidth="2.5"><polyline points="20,6 9,17 4,12" /></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97C8A" strokeWidth="2.5"><polyline points="20,6 9,17 4,12"/></svg>
                 {f2}
               </div>
             ))}
@@ -475,7 +448,7 @@ export default function HomePage() {
             ].map(row => (
               <div key={row.item} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: '0.5px solid rgba(201,124,138,.1)' }}>
                 <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${row.booked ? '#1a7a4a' : '#C97C8A'}`, background: row.booked ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {row.booked && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12" /></svg>}
+                  {row.booked && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>}
                 </div>
                 <span style={{ fontSize: 13, textDecoration: row.booked ? 'line-through' : 'none', color: row.booked ? '#aaa' : '#1a0a0f', flex: 1 }}>{row.item}</span>
                 {row.vendor && <span style={{ fontSize: 11, color: '#C97C8A', fontWeight: 500 }}>{row.vendor}</span>}
@@ -499,7 +472,7 @@ export default function HomePage() {
         <div>
           <div style={{ background: 'rgba(201,160,64,.15)', border: '0.5px solid rgba(201,160,64,.35)', color: '#C9A040', fontSize: 10, fontWeight: 600, padding: '4px 12px', borderRadius: 20, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 10, display: 'inline-block' }}>Coming Soon · Always Free for Families</div>
           <h3 className="font-serif" style={{ fontSize: 22, color: '#fff', marginBottom: 6 }}>Houston's First Completely Free Quinceañera Expo</h3>
-          <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)', maxWidth: 400, lineHeight: 1.6 }}>No tickets. No admission. Houston's best vendors, live demos, Q&A panels, and a fashion show — all free. One weekend. All Houston families welcome.</p>
+          <p style={{ fontSize: 13, color: 'rgba(250,216,233,.55)', maxWidth: 400, lineHeight: 1.6 }}>No tickets. No admission. Houston's best vendors, live demos, Q&A panels, and a fashion show — all free.</p>
         </div>
         <Link href="/events" style={{ background: 'transparent', color: '#C9A040', border: '0.5px solid rgba(201,160,64,.5)', padding: '11px 24px', borderRadius: 20, fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}>Get Early Access →</Link>
       </div>
@@ -511,10 +484,10 @@ export default function HomePage() {
             <h2 className="font-serif" style={{ fontSize: 28, color: '#fff', marginBottom: 6 }}>Are you a quinceañera vendor in Houston?</h2>
             <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.8)', maxWidth: 420, lineHeight: 1.6, marginBottom: 16 }}>Get in front of thousands of Houston moms actively planning right now. Free to list. Upgrade when ready. No contracts.</p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {['Free Listing', 'Verified · $49/mo'].map(t => (
+              {['Free Listing','Verified · $49/mo'].map(t => (
                 <div key={t} style={{ background: 'rgba(255,255,255,.18)', border: '0.5px solid rgba(255,255,255,.3)', borderRadius: 20, padding: '8px 18px', fontSize: 12.5, color: '#fff' }}>{t}</div>
               ))}
-              <div style={{ background: '#C9A040', border: '0.5px solid #C9A040', borderRadius: 20, padding: '8px 18px', fontSize: 12.5, color: '#1a0a0f', fontWeight: 700 }}>Featured · $129/mo</div>
+              <div style={{ background: '#C9A040', borderRadius: 20, padding: '8px 18px', fontSize: 12.5, color: '#1a0a0f', fontWeight: 700 }}>Featured · $129/mo</div>
             </div>
           </div>
           <Link href="/get-listed" style={{ background: '#fff', color: '#C97C8A', border: 'none', padding: '13px 28px', borderRadius: 20, fontSize: 14, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>Claim Your Listing</Link>
