@@ -271,6 +271,23 @@ export default function VendorPage({ params }: { params: { slug: string } }) {
             ))}
           </div>
 
+          {/* Claim CTA — only show if unclaimed */}
+          {!vendor.is_claimed && (
+            <div style={{ background: '#1a0a0f', border: '0.5px solid rgba(250,216,233,.15)', borderRadius: 16, padding: 20, textAlign: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(250,216,233,.5)', marginBottom: 8 }}>
+                Is this your business?
+              </div>
+              <div style={{ fontSize: 14, color: 'rgba(250,216,233,.75)', marginBottom: 16, lineHeight: 1.6 }}>
+                Claim this listing to update your photos, pricing, and contact info.
+              </div>
+              <Link href={`/claim/${vendor.slug}`} style={{ display: 'block', background: 'linear-gradient(135deg,#C97C8A,#b56a78)', color: '#fff', padding: '12px 0', borderRadius: 24, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                Claim this listing →
+              </Link>
+              <div style={{ fontSize: 11, color: 'rgba(250,216,233,.35)', marginTop: 10 }}>Free · Takes 2 minutes</div>
+            </div>
+          )}
+
+          
           {/* Share / save */}
           <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.15)', borderRadius: 14, padding: 18, display: 'flex', gap: 10 }}>
             <button onClick={() => navigator.share?.({ title: vendor.business_name, url: window.location.href })}
