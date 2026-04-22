@@ -1,12 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-)
+import { useRouter } from 'next/navigation'
 
 const FEATURED_PRICE = 49
 const PREMIER_PRICE = 129
@@ -68,6 +63,7 @@ type Stats = {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -78,17 +74,16 @@ export default function AdminDashboard() {
     setLoading(true)
     setError('')
     try {
+      const res = await fetch('/api/admin/stats')
+      if (res.status === 401) { router.push('/auth/login'); return }
+      if (res.status === 403) { router.push('/'); return }
+      if (!res.ok) throw new Error('Failed to load stats')
+      const { vendors: vendorData, profiles: profileData, reviews: reviewData } = await res.json()
+
       const now = new Date()
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-
-      // ── VENDORS ──────────────────────────────────────────────
-      const { data: vendorData, error: vendorError } = await supabase
-        .from('vendors')
-        .select('id, business_name, tier, is_claimed, is_active, is_verified, founding_vendor, created_at')
-
-      if (vendorError) throw new Error('vendors: ' + vendorError.message)
 
       const vendors: Vendor[] = vendorData || []
       const featured = vendors.filter(v => v.tier === 'featured').length
@@ -103,14 +98,7 @@ export default function AdminDashboard() {
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 8)
 
-      // ── PROFILES (moms) ───────────────────────────────────────
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email, created_at, role')
-
-      if (profileError) throw new Error('profiles: ' + profileError.message)
-
-      const profiles: Profile[] = (profileData || []).filter(p => p.role !== 'admin')
+      const profiles: Profile[] = (profileData || []).filter((p: Profile) => p.role !== 'admin')
       const momsTotal = profiles.length
       const momsThisWeek = profiles.filter(p => p.created_at >= weekAgo).length
       const momsThisMonth = profiles.filter(p => p.created_at >= monthAgo).length
@@ -119,17 +107,11 @@ export default function AdminDashboard() {
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 8)
 
-      // ── REVIEWS ───────────────────────────────────────────────
-      const { data: reviewData } = await supabase
-        .from('reviews')
-        .select('id, status, created_at')
-
       const reviews: Review[] = reviewData || []
       const reviewsTotal = reviews.length
       const reviewsPending = reviews.filter(r => r.status === 'pending' || r.status === 'held').length
       const reviewsThisMonth = reviews.filter(r => r.created_at >= monthAgo).length
 
-      // ── REVENUE ───────────────────────────────────────────────
       const mrr = (featured * FEATURED_PRICE) + (premier * PREMIER_PRICE)
       const goalPct = Math.round((mrr / MRR_GOAL) * 100)
 
@@ -144,14 +126,13 @@ export default function AdminDashboard() {
       setLastRefresh(new Date())
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Unknown error'
-      setError('Failed to load: ' + msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => { fetchStats() }, [fetchStats])
-
   useEffect(() => {
     const interval = setInterval(fetchStats, 5 * 60 * 1000)
     return () => clearInterval(interval)
@@ -224,7 +205,7 @@ export default function AdminDashboard() {
       <div style={s.metricGrid}>
         {[
           { label: 'Total vendors', value: vendors.total, sub: `+${vendors.new_this_week} this week` },
-          { label: 'Claimed profiles', value: vendors.claimed, sub: `${Math.round((vendors.claimed / Math.max(vendors.total,1))*100)}% of total` },
+          { label: 'Claimed profiles', value: vendors.claimed, sub: `${Math.round((vendors.claimed / Math.max(vendors.total, 1)) * 100)}% of total` },
           { label: 'Featured', value: vendors.featured, sub: `$${vendors.featured * FEATURED_PRICE}/mo`, color: '#5DCAA5' },
           { label: 'Premier', value: vendors.premier, sub: `$${vendors.premier * PREMIER_PRICE}/mo`, color: '#C97C8A' },
           { label: 'Monthly revenue', value: `$${revenue.mrr.toLocaleString()}`, sub: `${revenue.goal_pct}% of $${MRR_GOAL.toLocaleString()} goal` },
@@ -261,7 +242,7 @@ export default function AdminDashboard() {
                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{t.label}</span>
               </div>
               <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
-                <div style={{ height: '100%', background: t.color, borderRadius: 4, width: `${Math.min((t.count/Math.max(vendors.total,1))*100,100)}%` }} />
+                <div style={{ height: '100%', background: t.color, borderRadius: 4, width: `${Math.min((t.count / Math.max(vendors.total, 1)) * 100, 100)}%` }} />
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                 {t.count} vendors{t.price > 0 ? ` · $${t.count * t.price}/mo` : ''}
@@ -282,7 +263,7 @@ export default function AdminDashboard() {
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', width: 30, flexShrink: 0 }}>{p.month}</span>
                 <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 4, background: p.hitGoal ? '#5DCAA5' : '#C97C8A', width: `${Math.round((p.mrr/maxProj)*100)}%` }} />
+                  <div style={{ height: '100%', borderRadius: 4, background: p.hitGoal ? '#5DCAA5' : '#C97C8A', width: `${Math.round((p.mrr / maxProj) * 100)}%` }} />
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 500, width: 72, textAlign: 'right', color: p.hitGoal ? '#5DCAA5' : 'rgba(255,255,255,0.7)', flexShrink: 0 }}>
                   ${p.mrr.toLocaleString()}
@@ -402,7 +383,7 @@ const s: Record<string, React.CSSProperties> = {
   refreshBtn: { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '7px 14px', cursor: 'pointer', fontSize: 13 },
   metricGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 },
   metricCard: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '16px 18px' },
-  metricLabel: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.6px' },
+  metricLabel: { fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8, textTransform: 'uppercase' as const, letterSpacing: '0.6px' },
   metricValue: { fontSize: 28, fontWeight: 600, lineHeight: 1, marginBottom: 5 },
   metricSub: { fontSize: 12, color: 'rgba(255,255,255,0.35)' },
   card: { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '20px 22px', marginBottom: 16 },
