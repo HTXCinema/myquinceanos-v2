@@ -60,3 +60,349 @@ input[type=range]::-webkit-slider-thumb {
   color: #aaa;
   transition: all 0.3s ease;
 }
+
+/* ============================================================
+   MyQuinceAños — Mobile Responsive Additions
+   Paste this at the bottom of your existing globals.css
+   ============================================================ */
+
+/* ── Base box-sizing ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ── Prevent horizontal overflow on all pages ── */
+html, body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ── NAVIGATION ── */
+@media (max-width: 768px) {
+  /* Nav: stack logo + hamburger, hide desktop links */
+  nav .nav-links {
+    display: none;
+  }
+  nav .nav-mobile-toggle {
+    display: flex;
+  }
+  /* Nav open state */
+  nav.nav-open .nav-links {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0;
+    background: #1a0a0f;
+    padding: 80px 32px 32px;
+    gap: 24px;
+    z-index: 100;
+    font-size: 22px;
+  }
+}
+
+/* ── HOMEPAGE ── */
+@media (max-width: 768px) {
+  /* Hero section */
+  .hero-section {
+    padding: 60px 20px 40px !important;
+    min-height: auto !important;
+  }
+  .hero-section h1 {
+    font-size: clamp(28px, 8vw, 42px) !important;
+    line-height: 1.2 !important;
+  }
+  .hero-section p {
+    font-size: 15px !important;
+  }
+  /* Hero photo panels - stack vertically */
+  .hero-photos {
+    grid-template-columns: 1fr !important;
+    height: 220px !important;
+  }
+  .hero-photos > div:nth-child(2),
+  .hero-photos > div:nth-child(3) {
+    display: none !important;
+  }
+  /* Stats strip */
+  .stats-strip {
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 24px 20px !important;
+  }
+  .stats-divider {
+    display: none !important;
+  }
+  /* Category grid - 2 columns on mobile */
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    padding: 0 16px !important;
+  }
+  /* Budget calculator */
+  .calculator-inner {
+    padding: 20px 16px !important;
+  }
+  .calculator-header {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+  .calculator-total-display {
+    font-size: 28px !important;
+  }
+  /* Slider rows - compress label width */
+  .slider-row {
+    gap: 8px !important;
+  }
+  .slider-row > span:first-child {
+    width: 70px !important;
+    font-size: 11px !important;
+  }
+  .slider-row > span:last-child {
+    width: 54px !important;
+    font-size: 11px !important;
+  }
+  /* Featured vendor carousel */
+  .carousel-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .vendor-card {
+    min-width: 260px !important;
+    max-width: 280px !important;
+  }
+  /* Reviews / trust section */
+  .reviews-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  /* Planning tools */
+  .planning-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  /* Section padding globally */
+  section {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  section h2 {
+    font-size: clamp(22px, 6vw, 34px) !important;
+  }
+}
+
+/* ── VENDORS PAGE ── */
+@media (max-width: 768px) {
+  /* Filter bar - horizontal scroll */
+  .filter-bar {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    padding-bottom: 8px !important;
+    gap: 8px !important;
+    scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-pill {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  /* Vendor grid - single column */
+  .vendors-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 16px !important;
+  }
+  /* Vendor sidebar - hide or collapse */
+  .vendors-sidebar {
+    display: none !important;
+  }
+  .vendors-main {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  /* Vendor card */
+  .vendor-listing-card {
+    flex-direction: column !important;
+  }
+  .vendor-card-photo {
+    width: 100% !important;
+    height: 180px !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+}
+
+/* ── VENDOR PROFILE PAGE ── */
+@media (max-width: 768px) {
+  .vendor-profile-hero {
+    height: 220px !important;
+  }
+  .vendor-profile-body {
+    flex-direction: column !important;
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+  .vendor-profile-sidebar {
+    width: 100% !important;
+    order: -1 !important;
+  }
+  .vendor-gallery {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+}
+
+/* ── VENDOR PRICING PAGE ── */
+@media (max-width: 768px) {
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 0 16px !important;
+  }
+  .pricing-card {
+    width: 100% !important;
+  }
+  .pricing-hero h1 {
+    font-size: clamp(24px, 7vw, 40px) !important;
+  }
+}
+
+/* ── GET LISTED PAGE ── */
+@media (max-width: 768px) {
+  .get-listed-form {
+    padding: 20px 16px !important;
+  }
+  .form-row-two-col {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+/* ── AUTH PAGES (Login / Signup) ── */
+@media (max-width: 768px) {
+  .auth-page {
+    flex-direction: column !important;
+    padding: 20px 16px !important;
+  }
+  .auth-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 28px 20px !important;
+    border-radius: 16px !important;
+  }
+  .auth-benefit-cards {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .auth-trust-pills {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+/* ── MOM DASHBOARD ── */
+@media (max-width: 768px) {
+  .mom-dashboard {
+    padding: 16px !important;
+  }
+  .mom-dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .saved-vendors-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── VENDOR DASHBOARD ── */
+@media (max-width: 768px) {
+  .vendor-dashboard {
+    padding: 16px !important;
+  }
+  .vendor-dashboard-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .vendor-dashboard-stat-value {
+    font-size: 22px !important;
+  }
+}
+
+/* ── EVENTS PAGE ── */
+@media (max-width: 768px) {
+  .events-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    padding: 0 16px !important;
+  }
+  .event-hero {
+    padding: 40px 20px !important;
+  }
+  .event-hero h1 {
+    font-size: clamp(24px, 7vw, 40px) !important;
+  }
+}
+
+/* ── PLANNING PAGE ── */
+@media (max-width: 768px) {
+  .planning-page {
+    padding: 16px !important;
+  }
+  .planning-tools-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .checklist-section {
+    padding: 20px 16px !important;
+  }
+}
+
+/* ── ADMIN DASHBOARD ── */
+@media (max-width: 768px) {
+  .admin-two-col {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-tier-break {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .admin-metric-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ── FOOTER ── */
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 32px !important;
+    padding: 40px 20px !important;
+  }
+  .footer-bottom {
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 12px !important;
+    padding: 20px !important;
+  }
+}
+
+/* ── UTILITY: tap targets ── */
+@media (max-width: 768px) {
+  button, a, input[type="submit"] {
+    min-height: 44px;
+  }
+  input[type="range"] {
+    min-height: 32px;
+  }
+}
+
+/* ── Smooth scrolling ── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Spinner animation (for admin dashboard) ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
