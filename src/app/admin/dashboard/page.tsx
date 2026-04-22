@@ -1,3 +1,5 @@
+'use client'
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -5,7 +7,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 )
 
-'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
