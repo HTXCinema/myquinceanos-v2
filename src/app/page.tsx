@@ -156,7 +156,7 @@ function BudgetCalculator() {
 
       <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '14px 0' }} />
 
-    
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {SLIDER_DEFS.map(s => {
           const val = amts[s.key] ?? 0
           const pct = total > 0 ? Math.round((val / total) * 100) : 0
