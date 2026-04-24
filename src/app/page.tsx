@@ -156,22 +156,7 @@ function BudgetCalculator() {
 
       <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '14px 0' }} />
 
-      {/* Category sliders */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12 }}>
-  {CATEGORIES.map((c, i) => (
-    <Link key={c.slug} href={`/vendors?category=${c.slug}`}
-      style={{ borderRadius: 14, overflow: 'hidden', position: 'relative', cursor: 'pointer', textDecoration: 'none', display: 'block' }}>
-      {/* Remove span2 on mobile — all equal width */}
-      <div style={{ height: isMobile ? 120 : (c.span2 ? 190 : 160), background: CAT_COLORS[i], position: 'relative' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.4)' }} />
-      </div>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10 }}>
-        <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, color: '#fff' }}>{c.name}</div>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)', marginTop: 1 }}>{c.count} vendors</div>
-      </div>
-    </Link>
-  ))}
-</div>
+    
         {SLIDER_DEFS.map(s => {
           const val = amts[s.key] ?? 0
           const pct = total > 0 ? Math.round((val / total) * 100) : 0
