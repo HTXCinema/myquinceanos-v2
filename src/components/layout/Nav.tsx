@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,9 +17,12 @@ const NAV_LINKS = [
   { href: '/vendor-pricing', label: 'For Vendors' },
 ]
 
+// Pages with dark backgrounds — hamburger should be white
+const DARK_PAGES = ['/', '/vendors', '/auth/login', '/auth/signup', '/auth/forgot-password']
+
 export default function Nav() {
   const [open, setOpen] = useState(false)
-  const [user, setUser] = useState<{ email?: string; role?: string } | null>(null)
+  const [user, setUser] = useState<{ email?: string } | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
 
@@ -39,27 +42,44 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Close menu on route change
   useEffect(() => { setOpen(false) }, [pathname])
 
-  // Lock body scroll when menu is open
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [open])
 
- const isDark = pathname === '/' || pathname.startsWith('/vendors') || pathname.startsWith('/auth')
-const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
+  const isDarkPage = DARK_PAGES.includes(pathname) ||
+    pathname.startsWith('/vendors/') ||
+    pathname.startsWith('/events/')
+
+  // Nav background color
+  const navBg = open
+    ? 'rgba(26,10,15,0.98)'
+    : scrolled
+      ? isDarkPage ? 'rgba(26,10,15,0.97)' : 'rgba(255,255,255,0.97)'
+      : 'transparent'
+
+  // Text colors for desktop links
+  const textColor = isDarkPage || open
+    ? 'rgba(255,255,255,0.7)'
+    : 'rgba(74,48,64,0.9)'
+
+  const activeTextColor = isDarkPage || open ? '#FAD8E9' : '#C97C8A'
+
+  // Hamburger color — KEY FIX: always dark on light pages, always light on dark pages
+  // When scrolled on a light page, bg is white so we need dark icon
+  // When not scrolled on a light page, bg is transparent over white content — need dark icon
+  // On dark pages — always white icon
+  const hamburgerColor = isDarkPage ? '#fff' : '#1a0a0f'
 
   return (
     <>
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
-        background: scrolled || open
-          ? isDark ? 'rgba(26,10,15,0.97)' : 'rgba(255,255,255,0.97)'
-          : 'transparent',
-        backdropFilter: scrolled || open ? 'blur(12px)' : 'none',
-        borderBottom: scrolled ? `0.5px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` : 'none',
+        background: navBg,
+        backdropFilter: (scrolled || open) ? 'blur(12px)' : 'none',
+        borderBottom: scrolled && !open ? `0.5px solid ${isDarkPage ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` : 'none',
         transition: 'background 0.2s, border 0.2s',
         padding: '0 24px',
         height: 60,
@@ -69,14 +89,14 @@ const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
       }}>
         {/* Logo */}
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #C97C8A, #FAD8E9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#C97C8A,#FAD8E9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#1a0a0f' }}>MQ</span>
           </div>
           <span style={{
             fontFamily: "'Playfair Display', serif",
             fontSize: 17,
             fontWeight: 600,
-            color: mobileIconColor,
+            color: isDarkPage || open ? '#fff' : '#1a0a0f',
             letterSpacing: '-0.3px',
           }}>MyQuinceAños</span>
         </Link>
@@ -87,9 +107,7 @@ const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
             <Link key={link.href} href={link.href} style={{
               fontSize: 14,
               fontWeight: pathname === link.href ? 600 : 400,
-              color: isDark
-                ? pathname === link.href ? '#FAD8E9' : 'rgba(255,255,255,0.7)'
-                : pathname === link.href ? '#C97C8A' : '#4a3040',
+              color: pathname === link.href ? activeTextColor : textColor,
               textDecoration: 'none',
               transition: 'color 0.15s',
             }}>
@@ -101,14 +119,14 @@ const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
               fontSize: 14, fontWeight: 500, color: '#C97C8A',
               textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
             }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(201,124,138,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(201,124,138,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#C97C8A', fontWeight: 600 }}>
                 {user.email?.[0]?.toUpperCase() || 'M'}
               </div>
             </Link>
           ) : (
             <Link href="/auth/signup" style={{
               padding: '8px 18px', borderRadius: 24,
-              background: 'linear-gradient(135deg, #C97C8A, #b56a78)',
+              background: 'linear-gradient(135deg,#C97C8A,#b56a78)',
               color: '#fff', fontSize: 14, fontWeight: 600,
               textDecoration: 'none', boxShadow: '0 2px 12px rgba(201,124,138,0.35)',
             }}>
@@ -117,17 +135,20 @@ const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
           )}
         </div>
 
-        {/* Mobile hamburger */}
+        {/* Mobile hamburger — color always correct */}
         <button
           onClick={() => setOpen(o => !o)}
           aria-label={open ? 'Close menu' : 'Open menu'}
-          style={{
-            display: 'none', // shown via CSS below
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: 8, borderRadius: 8,
-            color: isDark ? '#fff' : '#1a0a0f',
-          }}
           className="nav-mobile-btn"
+          style={{
+            display: 'none',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 8,
+            borderRadius: 8,
+            color: open ? '#fff' : hamburgerColor,
+          }}
         >
           {open ? (
             <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
@@ -171,40 +192,31 @@ const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
                   padding: '14px 20px', borderRadius: 14, textAlign: 'center',
                   background: 'rgba(201,124,138,0.12)', color: '#C97C8A',
                   fontSize: 16, fontWeight: 600, textDecoration: 'none',
-                }}>
-                  My Dashboard
-                </Link>
+                }}>My Dashboard</Link>
                 <button onClick={async () => { await supabase.auth.signOut(); setOpen(false) }} style={{
                   padding: '14px 20px', borderRadius: 14,
                   background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
                   fontSize: 15, fontWeight: 500, border: '0.5px solid rgba(255,255,255,0.1)', cursor: 'pointer',
-                }}>
-                  Sign out
-                </button>
+                }}>Sign out</button>
               </>
             ) : (
               <>
                 <Link href="/auth/signup" style={{
                   padding: '16px 20px', borderRadius: 14, textAlign: 'center',
-                  background: 'linear-gradient(135deg, #C97C8A, #b56a78)',
-                  color: '#fff', fontSize: 16, fontWeight: 700,
-                  textDecoration: 'none', boxShadow: '0 4px 20px rgba(201,124,138,0.3)',
-                }}>
-                  Create free account
-                </Link>
+                  background: 'linear-gradient(135deg,#C97C8A,#b56a78)',
+                  color: '#fff', fontSize: 16, fontWeight: 700, textDecoration: 'none',
+                  boxShadow: '0 4px 20px rgba(201,124,138,0.3)',
+                }}>Create free account</Link>
                 <Link href="/auth/login" style={{
                   padding: '14px 20px', borderRadius: 14, textAlign: 'center',
                   background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)',
                   fontSize: 15, fontWeight: 500, textDecoration: 'none',
                   border: '0.5px solid rgba(255,255,255,0.1)',
-                }}>
-                  Sign in
-                </Link>
+                }}>Sign in</Link>
               </>
             )}
           </div>
 
-          {/* Vendor link at bottom */}
           <div style={{ marginTop: 'auto', paddingTop: 24, borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
             <Link href="/get-listed" style={{
               fontSize: 14, color: 'rgba(255,255,255,0.4)', textDecoration: 'none',
@@ -217,7 +229,6 @@ const mobileIconColor = scrolled ? (isDark ? '#fff' : '#1a0a0f') : '#1a0a0f'
         </div>
       )}
 
-      {/* Push page content below fixed nav */}
       <div style={{ height: 60 }} />
 
       <style>{`
