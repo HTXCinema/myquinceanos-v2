@@ -51,11 +51,11 @@ export default function Nav() {
     pathname.startsWith('/events/')
 
   // Nav background color
-  const navBg = open
-    ? 'rgba(26,10,15,0.98)'
-    : scrolled
-      ? isDarkPage ? 'rgba(26,10,15,0.97)' : 'rgba(255,255,255,0.97)'
-      : 'transparent'
+const navBg = open
+  ? 'rgba(26,10,15,0.98)'
+  : isDarkPage
+    ? scrolled ? 'rgba(26,10,15,0.97)' : 'transparent'
+    : 'rgba(255,255,255,0.97)'
 
   // Text colors for desktop links
   const textColor = isDarkPage || open
