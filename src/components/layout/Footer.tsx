@@ -17,8 +17,12 @@ export default function Footer() {
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-widest mb-3"
             style={{ color: 'rgba(250,216,233,0.3)' }}>For Moms</h4>
-          {[['Find Vendors','/vendors'],['Budget Calculator','/#calculator'],
-            ['Planning Hub','/planning'],['Events','/events']].map(([l,h])=>(
+          {[
+            ['Find Vendors', '/vendors'],
+            ['Budget Calculator', '/#calculator'],
+            ['Planning Hub', '/planning'],
+            ['Events', '/events'],
+          ].map(([l, h]) => (
             <Link key={h} href={h} className="block text-xs mb-2"
               style={{ color: 'rgba(250,216,233,0.5)' }}>{l}</Link>
           ))}
@@ -26,8 +30,11 @@ export default function Footer() {
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-widest mb-3"
             style={{ color: 'rgba(250,216,233,0.3)' }}>For Vendors</h4>
-          {[['Get Listed','/get-listed'],['Vendor Pricing','/vendor-pricing'],
-            ['Vendor Dashboard','/dashboard']].map(([l,h])=>(
+          {[
+            ['Get Listed', '/get-listed'],
+            ['Vendor Pricing', '/vendor-pricing'],
+            ['Vendor Dashboard', '/vendor-dashboard'],
+          ].map(([l, h]) => (
             <Link key={h} href={h} className="block text-xs mb-2"
               style={{ color: 'rgba(250,216,233,0.5)' }}>{l}</Link>
           ))}
@@ -35,16 +42,24 @@ export default function Footer() {
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-widest mb-3"
             style={{ color: 'rgba(250,216,233,0.3)' }}>Company</h4>
-          {[['About Us','/about'],['How Reviews Work','/reviews'],
-            ['Contact','/contact'],['Español','/?lang=es']].map(([l,h])=>(
+          {[
+            ['About Us', '/about'],
+            ['How Reviews Work', '/how-reviews-work'],
+            ['Contact', '/contact'],
+            ['Español', '/?lang=es'],
+          ].map(([l, h]) => (
             <Link key={h} href={h} className="block text-xs mb-2"
               style={{ color: 'rgba(250,216,233,0.5)' }}>{l}</Link>
           ))}
         </div>
       </div>
-      <div className="flex justify-between text-xs" style={{ color: 'rgba(250,216,233,0.22)' }}>
+      <div className="flex justify-between text-xs flex-wrap gap-2" style={{ color: 'rgba(250,216,233,0.22)' }}>
         <span>© 2026 MyQuinceAños · Houston, TX</span>
-        <span>Privacy · Terms · Sitemap</span>
+        <div style={{ display: 'flex', gap: 16 }}>
+          <Link href="/privacy" style={{ color: 'rgba(250,216,233,0.22)', textDecoration: 'none' }}>Privacy</Link>
+          <Link href="/terms" style={{ color: 'rgba(250,216,233,0.22)', textDecoration: 'none' }}>Terms</Link>
+          <Link href="/sitemap" style={{ color: 'rgba(250,216,233,0.22)', textDecoration: 'none' }}>Sitemap</Link>
+        </div>
       </div>
     </footer>
   )
