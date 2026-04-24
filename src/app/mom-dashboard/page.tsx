@@ -23,61 +23,60 @@ export default function MomDashboard() {
     loadDashboard()
   }, [])
 
-  async function loadDashboard() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/auth/login'); return }
+async function loadDashboard() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) { router.push('/auth/login'); return }
 
-    // Load mom profile
-    const { data: momData } = await supabase
-      .from('mom_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    let activeProfile = momData
-if (!momData) {
-  const { data: newProfile } = await supabase
+  // Load mom profile
+  const { data: momData } = await supabase
     .from('mom_profiles')
-    .insert({ user_id: user.id })
-    .select()
+    .select('*')
+    .eq('user_id', user.id)
     .single()
-  activeProfile = newProfile
 
-  // Seed default checklist for new users
-  const DEFAULT_ITEMS = [
-    'Venue', 'Photographer', 'Videographer', 'DJ / Music',
-    'Catering', 'Dress', 'Makeup & Hair', 'Choreography', 'Decor & Flowers'
-  ]
-  await supabase.from('mom_checklist').insert(
-    DEFAULT_ITEMS.map((name, i) => ({
-      mom_profile_id: newProfile!.id,
-      item_name: name,
-      sort_order: i,
-      is_booked: false,
-    }))
-  )
-}
-}
-setProfile(activeProfile)
+  let activeProfile = momData
 
-const { data: checklistData } = await supabase
-  .from('mom_checklist')
-  .select('*, vendors(business_name, tier, avg_rating)')
-  .eq('mom_profile_id', activeProfile?.id || '')
-  .order('sort_order')
-setChecklist(checklistData || [])
+  if (!momData) {
+    const { data: newProfile } = await supabase
+      .from('mom_profiles')
+      .insert({ user_id: user.id })
+      .select()
+      .single()
+    activeProfile = newProfile
 
-const { data: paymentData } = await supabase
-  .from('vendor_payments')
-  .select('*')
-  .eq('mom_profile_id', activeProfile?.id || '')
-  .order('due_date')
-setPayments(paymentData || [])
-
-setLoading(false)
-
-
+    // Seed default checklist for new users
+    const DEFAULT_ITEMS = [
+      'Venue', 'Photographer', 'Videographer', 'DJ / Music',
+      'Catering', 'Dress', 'Makeup & Hair', 'Choreography', 'Decor & Flowers'
+    ]
+    await supabase.from('mom_checklist').insert(
+      DEFAULT_ITEMS.map((name, i) => ({
+        mom_profile_id: newProfile!.id,
+        item_name: name,
+        sort_order: i,
+        is_booked: false,
+      }))
+    )
   }
+
+  setProfile(activeProfile)
+
+  const { data: checklistData } = await supabase
+    .from('mom_checklist')
+    .select('*, vendors(business_name, tier, avg_rating)')
+    .eq('mom_profile_id', activeProfile?.id || '')
+    .order('sort_order')
+  setChecklist(checklistData || [])
+
+  const { data: paymentData } = await supabase
+    .from('vendor_payments')
+    .select('*')
+    .eq('mom_profile_id', activeProfile?.id || '')
+    .order('due_date')
+  setPayments(paymentData || [])
+
+  setLoading(false)
+}
 
   async function toggleBooked(item: ChecklistItem) {
     const newBooked = !item.is_booked
