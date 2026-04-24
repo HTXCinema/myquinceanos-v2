@@ -5,6 +5,22 @@ import Nav from '@/components/layout/Nav'
 import Footer from '@/components/layout/Footer'
 import { createClient } from '@/lib/supabase'
 
+// ─────────────────────────────────────────────────────────────
+// STEP 1: Add this hook at the top of your homepage file,
+// right after your imports:
+// ─────────────────────────────────────────────────────────────
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isMobile
+}
+
 const CATEGORIES = [
   { name: 'Venues & Ballrooms', count: 18, slug: 'venues', span2: true },
   { name: 'Photographers', count: 24, slug: 'photographers', span2: true },
@@ -141,7 +157,21 @@ function BudgetCalculator() {
       <div style={{ height: 0.5, background: 'rgba(255,255,255,.08)', margin: '14px 0' }} />
 
       {/* Category sliders */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12 }}>
+  {CATEGORIES.map((c, i) => (
+    <Link key={c.slug} href={`/vendors?category=${c.slug}`}
+      style={{ borderRadius: 14, overflow: 'hidden', position: 'relative', cursor: 'pointer', textDecoration: 'none', display: 'block' }}>
+      {/* Remove span2 on mobile — all equal width */}
+      <div style={{ height: isMobile ? 120 : (c.span2 ? 190 : 160), background: CAT_COLORS[i], position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.4)' }} />
+      </div>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 10 }}>
+        <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 500, color: '#fff' }}>{c.name}</div>
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.6)', marginTop: 1 }}>{c.count} vendors</div>
+      </div>
+    </Link>
+  ))}
+</div>
         {SLIDER_DEFS.map(s => {
           const val = amts[s.key] ?? 0
           const pct = total > 0 ? Math.round((val / total) * 100) : 0
@@ -180,6 +210,7 @@ export default function HomePage() {
   const [carouselIdx, setCarouselIdx] = useState(0)
   const carouselRef = useRef<NodeJS.Timeout | null>(null)
   const supabase = createClient()
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     async function loadFeatured() {
@@ -214,44 +245,46 @@ export default function HomePage() {
 
       {/* HERO */}
       <section style={{ background: '#1a0a0f', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', height: 340, gap: 3 }}>
-          {['Bell Tower on 34th', 'DreamLite Productions', 'La Hacienda Grand Ballroom'].map((label, i) => (
-            <div key={i} style={{ background: `linear-gradient(160deg, ${['#3d1520,#7a3545,#c07080','#1a0a0f,#4a2030,#8a4060','#2a1018,#5a2535,#a06080'][i]})`, position: 'relative' }}>
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.5)' }} />
-              <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(26,10,15,.72)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 20, border: '0.5px solid rgba(255,255,255,.15)' }}>{label}</div>
-            </div>
-          ))}
-        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', height: isMobile ? 280 : 340, gap: 3 }}>
+  {['Bell Tower on 34th', 'DreamLite Productions', 'La Hacienda Grand Ballroom'].map((label, i) => (
+    <div key={i} style={{ background: `linear-gradient(160deg, ${['#3d1520,#7a3545,#c07080','#1a0a0f,#4a2030,#8a4060','#2a1018,#5a2535,#a06080'][i]})`, position: 'relative', display: isMobile && i > 0 ? 'none' : 'block' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.5)' }} />
+      <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(26,10,15,.72)', color: '#fff', fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 20, border: '0.5px solid rgba(255,255,255,.15)' }}>{label}</div>
+    </div>
+  ))}
+</div>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 2 }}>
           <div style={{ background: 'rgba(201,160,64,.18)', border: '0.5px solid rgba(201,160,64,.4)', color: '#C9A040', fontSize: 11, fontWeight: 500, padding: '5px 14px', borderRadius: 20, letterSpacing: '1.2px', textTransform: 'uppercase', marginBottom: 14 }}>Houston's Quinceañera Planning Platform</div>
-          <h1 className="font-serif text-center" style={{ fontSize: 44, fontWeight: 600, color: '#fff', lineHeight: 1.15, marginBottom: 10, maxWidth: 560 }}>
+          <h1 className="font-serif text-center" style={{ fontSize: isMobile ? 28 : 44, fontWeight: 600, color: '#fff', lineHeight: 1.15, marginBottom: 10, maxWidth: 560 }}>
             Plan Your Daughter's <em style={{ color: '#FAD8E9' }}>Perfect</em> Quinceañera
           </h1>
           <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 14, textAlign: 'center', marginBottom: 22, maxWidth: 440, lineHeight: 1.6 }}>Trusted vendors, verified reviews from real moms, free planning tools — all in one place.</p>
-          <div style={{ background: 'rgba(255,255,255,.96)', borderRadius: 14, padding: '6px 6px 6px 16px', display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 520 }}>
-            <select style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#555', flex: 1, outline: 'none', padding: '6px 0' }}>
-              <option>All Categories</option>
-              <option>Photographers</option><option>Venues</option><option>DJs</option>
-              <option>Catering</option><option>Makeup & Hair</option><option>Dresses</option>
-            </select>
-            <div style={{ width: 0.5, height: 20, background: '#ddd' }} />
-            <select style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#555', outline: 'none', padding: '6px 0', width: 130 }}>
-              <option>Houston, TX</option><option>Katy, TX</option><option>Pearland, TX</option><option>Sugar Land, TX</option>
-            </select>
-            <Link href="/vendors" style={{ background: '#C97C8A', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap' }}>Search</Link>
-          </div>
+         <div style={{ background: 'rgba(255,255,255,.96)', borderRadius: 14, padding: '6px 6px 6px 16px', display: 'flex', gap: 8, alignItems: 'center', width: '100%', maxWidth: 520 }}>
+  <select style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#555', flex: 1, outline: 'none', padding: '6px 0', minWidth: 0 }}>
+    <option>All Categories</option>
+    <option>Photographers</option><option>Venues</option><option>DJs</option>
+    <option>Catering</option><option>Makeup & Hair</option><option>Dresses</option>
+  </select>
+  {!isMobile && <>
+    <div style={{ width: 0.5, height: 20, background: '#ddd' }} />
+    <select style={{ border: 'none', background: 'transparent', fontSize: 13, color: '#555', outline: 'none', padding: '6px 0', width: 130 }}>
+      <option>Houston, TX</option><option>Katy, TX</option><option>Pearland, TX</option><option>Sugar Land, TX</option>
+    </select>
+  </>}
+  <Link href="/vendors" style={{ background: '#C97C8A', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap' }}>Search</Link>
+</div>
         </div>
       </section>
 
-      {/* STATS */}
-      <div style={{ background: '#C97C8A', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)' }}>
-        {[['127+','Houston Vendors'],['12','Categories'],['100%','Mom-Verified Reviews'],['Free','To Start Planning']].map(([n,l]) => (
-          <div key={l} style={{ padding: '14px 8px', textAlign: 'center', borderRight: '0.5px solid rgba(255,255,255,.25)' }}>
-            <span className="font-serif block" style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{n}</span>
-            <span className="block" style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', marginTop: 1 }}>{l}</span>
-          </div>
-        ))}
-      </div>
+   {/* STATS */}
+<div style={{ background: '#C97C8A', display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)' }}>
+  {[['127+','Houston Vendors'],['12','Categories'],['100%','Mom-Verified Reviews'],['Free','To Start Planning']].map(([n,l], idx) => (
+    <div key={l} style={{ padding: '14px 8px', textAlign: 'center', borderRight: isMobile ? (idx % 2 === 0 ? '0.5px solid rgba(255,255,255,.25)' : 'none') : '0.5px solid rgba(255,255,255,.25)', borderBottom: isMobile && idx < 2 ? '0.5px solid rgba(255,255,255,.25)' : 'none' }}>
+      <span className="font-serif block" style={{ fontSize: 24, fontWeight: 600, color: '#fff' }}>{n}</span>
+      <span className="block" style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', marginTop: 1 }}>{l}</span>
+    </div>
+  ))}
+</div>
 
       {/* PLANNING TOOLS */}
       <section style={{ padding: '48px 28px' }}>
@@ -260,7 +293,7 @@ export default function HomePage() {
           <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, lineHeight: 1.15 }}>Built for Houston moms, not just browsers</h2>
           <span style={{ fontSize: 13, color: '#7a5c65' }}>No account needed</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 14 }}>
           {[
             { label: 'Planning Timeline', sub: '12-Month Timeline', desc: 'Step-by-step checklist from booking your venue to the morning of the event. Never miss a deadline.', href: '/planning', color: 'linear-gradient(160deg,#2a1520 0%,#7a4055 60%,#c08090 100%)' },
             { label: 'Budget Calculator', sub: 'Live Budget Slider', desc: 'Drag the sliders below — watch your budget split across every category in real time.', href: '#calculator', color: 'linear-gradient(160deg,#152025 0%,#355060 55%,#6090a0 100%)' },
@@ -348,29 +381,74 @@ export default function HomePage() {
       </section>
 
       {/* CATEGORIES */}
-      <section style={{ padding: '48px 28px', background: '#0f0608' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: 'rgba(250,216,233,.6)', marginBottom: 8 }}>Browse by Category</div>
-            <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, color: '#fff', lineHeight: 1.15 }}>Find what you need most</h2>
+   <section style={{ padding: isMobile ? '32px 16px' : '48px 28px', background: '#FDF6F0' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 8 }}>Featured Vendors</div>
+      <h2 className="font-serif" style={{ fontSize: isMobile ? 26 : 34, fontWeight: 600, lineHeight: 1.15 }}>Houston vendors families love</h2>
+    </div>
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <button onClick={() => { setCarouselIdx(i => (i - 1 + featuredVendors.length) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
+        style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="9,2 4,7 9,12"/></svg>
+      </button>
+      <button onClick={() => { setCarouselIdx(i => (i + 1) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
+        style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="5,2 10,7 5,12"/></svg>
+      </button>
+      {!isMobile && <Link href="/vendors?tier=featured" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all featured →</Link>}
+    </div>
+  </div>
+  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
+    {featuredVendors.map((_, i) => (
+      <button key={i} onClick={() => setCarouselIdx(i)}
+        style={{ width: i === carouselIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === carouselIdx ? '#C97C8A' : 'rgba(201,124,138,.3)', border: 'none', cursor: 'pointer', transition: 'all 0.3s' }} />
+    ))}
+  </div>
+  {/* On mobile show 1 card, on desktop show 3 */}
+  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 16 }}>
+    {(isMobile ? [featuredVendors[carouselIdx % featuredVendors.length]] : visibleVendors).filter(Boolean).map((v, i) => {
+      const catName = (v.categories as any)?.name || ''
+      const bg = v.cover_photo_url ? undefined : CAT_BG_COLORS[i % CAT_BG_COLORS.length]
+      const profileLink = v.slug ? `/vendors/${v.slug}` : '/vendors'
+      return (
+        <Link key={v.id || i} href={profileLink} style={{ textDecoration: 'none', background: '#fff', border: `0.5px solid ${v.tier === 'premier' ? 'rgba(201,160,64,.4)' : 'rgba(201,124,138,.18)'}`, borderRadius: 16, overflow: 'hidden', display: 'block' }}>
+          <div style={{ height: isMobile ? 220 : 200, background: bg, backgroundImage: v.cover_photo_url ? `url(${v.cover_photo_url})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: 10, right: 10, background: v.tier === 'premier' ? 'linear-gradient(135deg,#C9A040,#e8c96a)' : '#C9A040', color: '#1a0a0f', fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20 }}>
+              {v.tier === 'premier' ? '⭐ Premier' : 'Featured'}
+            </div>
+            {v.myquince_perk && (
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(201,160,64,.9)', padding: '7px 12px' }}>
+                <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(26,10,15,.6)', fontWeight: 600 }}>MyQuince Perk</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#1a0a0f' }}>{v.myquince_perk}</div>
+              </div>
+            )}
           </div>
-          <Link href="/vendors" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>All 12 categories →</Link>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
-          {CATEGORIES.map((c, i) => (
-            <Link key={c.slug} href={`/vendors?category=${c.slug}`}
-              style={{ gridColumn: c.span2 ? 'span 2' : undefined, borderRadius: 14, overflow: 'hidden', position: 'relative', cursor: 'pointer', textDecoration: 'none', display: 'block' }}>
-              <div style={{ height: c.span2 ? 190 : 160, background: CAT_COLORS[i], position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,10,15,.4)' }} />
-              </div>
-              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{c.name}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', marginTop: 1 }}>{c.count} vendors</div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+          <div style={{ padding: '14px 16px' }}>
+            <div style={{ fontSize: 10.5, color: '#C97C8A', fontWeight: 600, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 3 }}>{catName}</div>
+            <div style={{ fontSize: 15, fontWeight: 500, color: '#1a0a0f', marginBottom: 5 }}>{v.business_name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 5 }}>
+              <Stars rating={v.avg_rating || 0} />
+              <span style={{ fontSize: 11.5, color: '#7a5c65', marginLeft: 4 }}>
+                {v.avg_rating > 0 ? `${v.avg_rating} (${v.review_count} reviews)` : 'No reviews yet'}
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: '#7a5c65' }}>
+              {v.starting_price ? <>Starting at <strong style={{ color: '#1a0a0f', fontWeight: 500 }}>${Number(v.starting_price).toLocaleString()}</strong></> : 'Contact for pricing'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, fontSize: 11, color: '#1a7a4a', fontWeight: 500 }}>
+              <div style={{ width: 5, height: 5, background: '#1a7a4a', borderRadius: '50%' }} />
+              Mom-verified reviews
+            </div>
+          </div>
+        </Link>
+      )
+    })}
+  </div>
+  {isMobile && (
+    <Link href="/vendors?tier=featured" style={{ display: 'block', textAlign: 'center', fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none', marginTop: 16 }}>View all featured vendors →</Link>
+  )}
+</section>
 
       {/* REVIEWS */}
       <section style={{ background: '#1a0a0f', padding: '52px 28px' }}>
@@ -388,7 +466,7 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
+       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: 14 }}>
           {REVIEWS.map(r => (
             <div key={r.name} style={{ background: 'rgba(255,255,255,.06)', border: '0.5px solid rgba(250,216,233,.12)', borderRadius: 14, padding: 20 }}>
               <div style={{ display: 'flex', gap: 11, alignItems: 'center', marginBottom: 12 }}>
@@ -409,7 +487,7 @@ export default function HomePage() {
         </div>
         <div style={{ marginTop: 40 }}>
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: 'rgba(250,216,233,.5)', marginBottom: 20 }}>How our review system works</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 16 }}>
             {[
               ['01','Mom books a vendor',"After booking through MyQuinceAños, she gets an invite to share her experience once the event is done."],
               ['02','Submit proof of purchase',"She uploads her contract or receipt. Our team verifies it's real before the review ever goes live."],
@@ -426,7 +504,7 @@ export default function HomePage() {
       </section>
 
       {/* MOM CTA */}
-      <section style={{ background: '#FAD8E9', padding: '40px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+      <section style={{ background: '#FAD8E9', padding: isMobile ? '32px 20px' : '40px 28px', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
         <div>
           <h2 className="font-serif" style={{ fontSize: 28, color: '#1a0a0f', marginBottom: 6 }}>Save your vendors. Track your dates.</h2>
           <p style={{ fontSize: 13.5, color: '#7a5c65', maxWidth: 400, lineHeight: 1.6, marginBottom: 16 }}>Create a free mom account — saved vendors, event countdown, payment due dates, planning checklist, all in one dashboard.</p>
@@ -479,7 +557,7 @@ export default function HomePage() {
 
       {/* VENDOR CTA */}
       <div style={{ padding: '0 28px 48px' }}>
-        <div style={{ background: '#C97C8A', borderRadius: 18, padding: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+        <div style={{ background: '#C97C8A', borderRadius: 18, padding: isMobile ? '28px 20px' : 40, display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', gap: 24, flexWrap: 'wrap', flexDirection: isMobile ? 'column' : 'row' }}>
           <div>
             <h2 className="font-serif" style={{ fontSize: 28, color: '#fff', marginBottom: 6 }}>Are you a quinceañera vendor in Houston?</h2>
             <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,.8)', maxWidth: 420, lineHeight: 1.6, marginBottom: 16 }}>Get in front of thousands of Houston moms actively planning right now. Free to list. Upgrade when ready. No contracts.</p>
