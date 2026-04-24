@@ -299,71 +299,7 @@ export default function HomePage() {
         <BudgetCalculator />
       </section>
 
-      {/* FEATURED VENDORS */}
-      <section style={{ padding: '48px 28px', background: '#FDF6F0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.8px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 8 }}>Featured Vendors</div>
-            <h2 className="font-serif" style={{ fontSize: 34, fontWeight: 600, lineHeight: 1.15 }}>Houston vendors families love</h2>
-          </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <button onClick={() => { setCarouselIdx(i => (i - 1 + featuredVendors.length) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
-              style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="9,2 4,7 9,12"/></svg>
-            </button>
-            <button onClick={() => { setCarouselIdx(i => (i + 1) % featuredVendors.length); if (carouselRef.current) clearInterval(carouselRef.current) }}
-              style={{ width: 36, height: 36, borderRadius: '50%', border: '0.5px solid rgba(201,124,138,.3)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" fill="none" stroke="#C97C8A" strokeWidth="2"><polyline points="5,2 10,7 5,12"/></svg>
-            </button>
-            <Link href="/vendors?tier=featured" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all featured →</Link>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
-          {featuredVendors.map((_, i) => (
-            <button key={i} onClick={() => setCarouselIdx(i)}
-              style={{ width: i === carouselIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === carouselIdx ? '#C97C8A' : 'rgba(201,124,138,.3)', border: 'none', cursor: 'pointer', transition: 'all 0.3s' }} />
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
-          {visibleVendors.map((v, i) => {
-            const catName = (v.categories as any)?.name || ''
-            const bg = v.cover_photo_url ? undefined : CAT_BG_COLORS[i % CAT_BG_COLORS.length]
-            const profileLink = v.slug ? `/vendors/${v.slug}` : '/vendors'
-            return (
-              <Link key={v.id || i} href={profileLink} style={{ textDecoration: 'none', background: '#fff', border: `0.5px solid ${v.tier === 'premier' ? 'rgba(201,160,64,.4)' : 'rgba(201,124,138,.18)'}`, borderRadius: 16, overflow: 'hidden', display: 'block' }}>
-                <div style={{ height: 200, background: bg, backgroundImage: v.cover_photo_url ? `url(${v.cover_photo_url})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 10, right: 10, background: v.tier === 'premier' ? 'linear-gradient(135deg,#C9A040,#e8c96a)' : '#C9A040', color: '#1a0a0f', fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20 }}>
-                    {v.tier === 'premier' ? '⭐ Premier' : 'Featured'}
-                  </div>
-                  {v.myquince_perk && (
-                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(201,160,64,.9)', padding: '7px 12px' }}>
-                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(26,10,15,.6)', fontWeight: 600 }}>MyQuince Perk</div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#1a0a0f' }}>{v.myquince_perk}</div>
-                    </div>
-                  )}
-                </div>
-                <div style={{ padding: '14px 16px' }}>
-                  <div style={{ fontSize: 10.5, color: '#C97C8A', fontWeight: 600, letterSpacing: .5, textTransform: 'uppercase', marginBottom: 3 }}>{catName}</div>
-                  <div style={{ fontSize: 15, fontWeight: 500, color: '#1a0a0f', marginBottom: 5 }}>{v.business_name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 5 }}>
-                    <Stars rating={v.avg_rating || 0} />
-                    <span style={{ fontSize: 11.5, color: '#7a5c65', marginLeft: 4 }}>
-                      {v.avg_rating > 0 ? `${v.avg_rating} (${v.review_count} reviews)` : 'No reviews yet'}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 13, color: '#7a5c65' }}>
-                    {v.starting_price ? <>Starting at <strong style={{ color: '#1a0a0f', fontWeight: 500 }}>${Number(v.starting_price).toLocaleString()}</strong></> : 'Contact for pricing'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, fontSize: 11, color: '#1a7a4a', fontWeight: 500 }}>
-                    <div style={{ width: 5, height: 5, background: '#1a7a4a', borderRadius: '50%' }} />
-                    Mom-verified reviews
-                  </div>
-                </div>
-              </Link>
-            )
-          })}
-        </div>
-      </section>
+    
 
       {/* CATEGORIES */}
    <section style={{ padding: isMobile ? '32px 16px' : '48px 28px', background: '#FDF6F0' }}>
@@ -384,12 +320,12 @@ export default function HomePage() {
       {!isMobile && <Link href="/vendors?tier=featured" style={{ fontSize: 13, color: '#C97C8A', fontWeight: 500, textDecoration: 'none' }}>View all featured →</Link>}
     </div>
   </div>
-  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
+  {featuredVendors.length > 0 && <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16 }}>
     {featuredVendors.map((_, i) => (
       <button key={i} onClick={() => setCarouselIdx(i)}
         style={{ width: i === carouselIdx ? 20 : 6, height: 6, borderRadius: 3, background: i === carouselIdx ? '#C97C8A' : 'rgba(201,124,138,.3)', border: 'none', cursor: 'pointer', transition: 'all 0.3s' }} />
     ))}
-  </div>
+  </div>}
   {/* On mobile show 1 card, on desktop show 3 */}
   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 16 }}>
     {(isMobile ? [featuredVendors[carouselIdx % featuredVendors.length]] : visibleVendors).filter(Boolean).map((v, i) => {
