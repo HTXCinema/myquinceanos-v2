@@ -34,35 +34,49 @@ export default function MomDashboard() {
       .eq('user_id', user.id)
       .single()
 
-    if (!momData) {
-      // First time — create profile
-      const { data: newProfile } = await supabase
-        .from('mom_profiles')
-        .insert({ user_id: user.id })
-        .select()
-        .single()
-      setProfile(newProfile)
-    } else {
-      setProfile(momData)
-    }
+    let activeProfile = momData
+if (!momData) {
+  const { data: newProfile } = await supabase
+    .from('mom_profiles')
+    .insert({ user_id: user.id })
+    .select()
+    .single()
+  activeProfile = newProfile
 
-    // Load checklist with vendor names
-    const { data: checklistData } = await supabase
-      .from('mom_checklist')
-      .select('*, vendors(business_name, tier, avg_rating)')
-      .eq('mom_profile_id', momData?.id || '')
-      .order('sort_order')
-    setChecklist(checklistData || [])
+  // Seed default checklist for new users
+  const DEFAULT_ITEMS = [
+    'Venue', 'Photographer', 'Videographer', 'DJ / Music',
+    'Catering', 'Dress', 'Makeup & Hair', 'Choreography', 'Decor & Flowers'
+  ]
+  await supabase.from('mom_checklist').insert(
+    DEFAULT_ITEMS.map((name, i) => ({
+      mom_profile_id: newProfile!.id,
+      item_name: name,
+      sort_order: i,
+      is_booked: false,
+    }))
+  )
+}
+}
+setProfile(activeProfile)
 
-    // Load payments sorted by due date
-    const { data: paymentData } = await supabase
-      .from('vendor_payments')
-      .select('*')
-      .eq('mom_profile_id', momData?.id || '')
-      .order('due_date')
-    setPayments(paymentData || [])
+const { data: checklistData } = await supabase
+  .from('mom_checklist')
+  .select('*, vendors(business_name, tier, avg_rating)')
+  .eq('mom_profile_id', activeProfile?.id || '')
+  .order('sort_order')
+setChecklist(checklistData || [])
 
-    setLoading(false)
+const { data: paymentData } = await supabase
+  .from('vendor_payments')
+  .select('*')
+  .eq('mom_profile_id', activeProfile?.id || '')
+  .order('due_date')
+setPayments(paymentData || [])
+
+setLoading(false)
+
+
   }
 
   async function toggleBooked(item: ChecklistItem) {
