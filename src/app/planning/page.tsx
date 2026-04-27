@@ -298,7 +298,7 @@ export default function PlanningPage() {
       </div>
 
       {/* PAGE BODY */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px', minWidth: 0, overflowX: 'hidden' }}>
 
         {/* ══════════════════════════════════════════
             CHECKLIST TAB
@@ -553,43 +553,60 @@ export default function PlanningPage() {
               </div>
 
               {/* OVERALL PROGRESS */}
-              <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: '16px 18px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 14 }}>Overall Progress</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-                  {/* Donut */}
+              <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: '20px 22px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 18 }}>Overall Progress</div>
+                {/* Donut — centered, large */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 18 }}>
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <svg width="76" height="76" viewBox="0 0 76 76" style={{ transform: 'rotate(-90deg)' }}>
-                      <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(201,124,138,.1)" strokeWidth="7"/>
-                      <circle cx="38" cy="38" r="30" fill="none" stroke="#C97C8A" strokeWidth="7"
-                        strokeDasharray={`${2 * Math.PI * 30}`}
-                        strokeDashoffset={`${2 * Math.PI * 30 * (1 - progressPct / 100)}`}
+                    <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(201,124,138,.1)" strokeWidth="9"/>
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="url(#progressGrad)" strokeWidth="9"
+                        strokeDasharray={`${2 * Math.PI * 50}`}
+                        strokeDashoffset={`${2 * Math.PI * 50 * (1 - progressPct / 100)}`}
                         strokeLinecap="round"/>
+                      <defs>
+                        <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#C97C8A"/>
+                          <stop offset="100%" stopColor="#C9A040"/>
+                        </linearGradient>
+                      </defs>
                     </svg>
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span className="font-serif" style={{ fontSize: 15, color: '#C97C8A', fontWeight: 600 }}>{progressPct}%</span>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <span className="font-serif" style={{ fontSize: 28, color: '#C97C8A', fontWeight: 600, lineHeight: 1 }}>{progressPct}%</span>
+                      <span style={{ fontSize: 10, color: '#bbb', marginTop: 2 }}>complete</span>
                     </div>
                   </div>
-                  {/* Labels */}
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1a0a0f', marginBottom: 3 }}>
-                      {progressPct === 100 ? '🎉 All done!' : progressPct >= 50 ? 'Great progress!' : 'Just getting started!'}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#7a5c65', marginBottom: 6 }}>{bookedCount} of {VENDOR_CATEGORIES.length} vendors booked</div>
-                    {nextUnbooked && !eventPassed && (
-                      <Link href={`/vendors?category=${nextUnbooked.slug}`}
-                        style={{ fontSize: 12, color: '#C97C8A', fontWeight: 600, textDecoration: 'none', display: 'block' }}>
-                        Next: Book your {nextUnbooked.label} →
-                      </Link>
-                    )}
-                    {countdown && nextUnbooked && (
-                      <div style={{ fontSize: 11, color: '#7a5c65', marginTop: 2 }}>
-                        {countdown.months > 0 ? `${countdown.months}mo ` : ''}
-                        {countdown.weeks  > 0 ? `${countdown.weeks}wk `  : ''}
-                        {countdown.days}d remaining
-                      </div>
-                    )}
-                    {eventPassed && <div style={{ fontSize: 12, color: '#5DCAA5', fontWeight: 600 }}>🎉 Leave reviews for your vendors!</div>}
+                </div>
+                {/* Stats row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div style={{ background: 'rgba(201,124,138,.05)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1a0a0f' }}>{bookedCount}</div>
+                    <div style={{ fontSize: 10, color: '#7a5c65', marginTop: 2 }}>Vendors Booked</div>
                   </div>
+                  <div style={{ background: 'rgba(201,124,138,.05)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1a0a0f' }}>{VENDOR_CATEGORIES.length - bookedCount}</div>
+                    <div style={{ fontSize: 10, color: '#7a5c65', marginTop: 2 }}>Still Needed</div>
+                  </div>
+                </div>
+                {/* Status message */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1a0a0f', marginBottom: 6 }}>
+                    {progressPct === 100 ? '🎉 All done!' : progressPct >= 50 ? 'Great progress!' : 'Just getting started!'}
+                  </div>
+                  {nextUnbooked && !eventPassed && (
+                    <Link href={`/vendors?category=${nextUnbooked.slug}`}
+                      style={{ display: 'inline-block', fontSize: 12, color: '#fff', fontWeight: 600, textDecoration: 'none', background: 'linear-gradient(135deg,#C97C8A,#b56a78)', padding: '8px 18px', borderRadius: 20, boxShadow: '0 2px 10px rgba(201,124,138,.25)' }}>
+                      Next: Book your {nextUnbooked.label} →
+                    </Link>
+                  )}
+                  {countdown && nextUnbooked && (
+                    <div style={{ fontSize: 11, color: '#7a5c65', marginTop: 8 }}>
+                      {countdown.months > 0 ? `${countdown.months}mo ` : ''}
+                      {countdown.weeks  > 0 ? `${countdown.weeks}wk `  : ''}
+                      {countdown.days}d remaining
+                    </div>
+                  )}
+                  {eventPassed && <div style={{ fontSize: 12, color: '#5DCAA5', fontWeight: 600, marginTop: 4 }}>🎉 Leave reviews for your vendors!</div>}
                 </div>
               </div>
             </div>
@@ -745,7 +762,6 @@ export default function PlanningPage() {
       )}
 
       <style>{`
-        /* Even 50/50 split on desktop */
         .planning-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -755,6 +771,11 @@ export default function PlanningPage() {
         @media (max-width: 880px) {
           .planning-grid {
             grid-template-columns: 1fr !important;
+          }
+          .planning-grid > div {
+            max-width: 100%;
+            min-width: 0;
+            overflow: hidden;
           }
         }
       `}</style>
