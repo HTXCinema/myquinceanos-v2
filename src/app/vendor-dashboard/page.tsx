@@ -228,8 +228,8 @@ export default function VendorDashboard() {
                   {f}
                 </div>
               ))}
-              {tier !== 'premier' && (
-                <button onClick={() => setActiveTab('upgrade')}
+            {(tier === 'free' || tier === 'verified') && (
+  <button onClick={() => setActiveTab('upgrade')}...>
                   style={{ marginTop: 14, background: '#C97C8A', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 20, fontSize: 13, fontWeight: 500, cursor: 'pointer', width: '100%' }}>
                   Upgrade for more visibility →
                 </button>
