@@ -456,7 +456,7 @@ export default function MomDashboard() {
                           </button>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 500, color: p.is_paid ? '#aaa' : '#1a0a0f', textDecoration: p.is_paid ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.vendor_name}</div>
-                            <div style={{ fontSize: 11, color: '#7a5c65' }}>{fmt(p.amount_due)} · Due {new Date(p.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                            <div style={{ fontSize: 11, color: '#7a5c65' }}>{fmt(p.amount_due ?? 0)} · Due {new Date(p.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                           </div>
                           <div style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, padding: '3px 8px', borderRadius: 20, flexShrink: 0, letterSpacing: '.5px' }}>{badge.label}</div>
                         </div>
