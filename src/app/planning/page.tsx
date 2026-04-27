@@ -35,16 +35,14 @@ const BUDGET_SPLITS: Record<string, number> = {
   cake: 0.02, decor: 0.07, limo: 0.03, entertainment: 0.03,
 }
 
-type VendorEntry = { id: string; name: string; price?: number; phone?: string; note?: string }
-type ChecklistItem = {
-  catId: string; booked: boolean; selectedVendor: string
-  savedVendors: VendorEntry[]; budgetOverride?: number
-}
-type Payment = { id: string; vendor: string; label: string; amount: number; due: string; paid: boolean }
+type VendorEntry   = { id: string; name: string; price?: number; phone?: string; note?: string }
+type ChecklistItem = { catId: string; booked: boolean; selectedVendor: string; savedVendors: VendorEntry[]; budgetOverride?: number }
+type Payment       = { id: string; vendor: string; label: string; amount: number; due: string; paid: boolean }
 
 function initChecklist(): ChecklistItem[] {
   return VENDOR_CATEGORIES.map(c => ({ catId: c.id, booked: false, selectedVendor: '', savedVendors: [] }))
 }
+
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString()
 
 function daysBreakdown(date: string) {
@@ -52,9 +50,9 @@ function daysBreakdown(date: string) {
   const ms = new Date(date).getTime() - Date.now()
   if (ms <= 0) return null
   const totalDays = Math.ceil(ms / 86400000)
-  const months = Math.floor(totalDays / 30)
-  const weeks = Math.floor((totalDays % 30) / 7)
-  const days = totalDays % 7
+  const months    = Math.floor(totalDays / 30)
+  const weeks     = Math.floor((totalDays % 30) / 7)
+  const days      = totalDays % 7
   return { totalDays, months, weeks, days }
 }
 
@@ -67,34 +65,29 @@ function getUrgencyBadge(due: string, paid: boolean) {
   return { label: 'ON TRACK', color: '#1a7a4a', bg: 'rgba(26,122,74,.1)' }
 }
 
+const Checkmark = ({ size = 9, color = '#fff' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="3">
+    <polyline points="20,6 9,17 4,12"/>
+  </svg>
+)
+
 export default function PlanningPage() {
-  const [step, setStep] = useState<'setup' | 'dashboard'>('setup')
-  const [activeSection, setActiveSection] = useState<'checklist' | 'compare' | 'timeline'>('checklist')
-  const [form, setForm] = useState({ daughter: '', date: '', budget: '', guests: '' })
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(initChecklist())
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [compareMode, setCompareMode] = useState<string | null>(null)
+  const [step, setStep]                   = useState<'setup' | 'dashboard'>('setup')
+  const [activeTab, setActiveTab]         = useState<'checklist' | 'compare' | 'timeline'>('checklist')
+  const [form, setForm]                   = useState({ daughter: '', date: '', budget: '', guests: '' })
+  const [checklist, setChecklist]         = useState<ChecklistItem[]>(initChecklist())
+  const [payments, setPayments]           = useState<Payment[]>([])
+  const [compareMode, setCompareMode]     = useState<string | null>(null)
   const [addingVendorTo, setAddingVendorTo] = useState<string | null>(null)
-  const [newVendor, setNewVendor] = useState({ name: '', price: '', phone: '', note: '' })
-  const [addPayment, setAddPayment] = useState(false)
-  const [newPayment, setNewPayment] = useState({ vendor: '', label: 'Deposit', amount: '', due: '' })
-  const [reviewVendor, setReviewVendor] = useState<{ id: string; name: string; category: string } | null>(null)
+  const [newVendor, setNewVendor]         = useState({ name: '', price: '', phone: '', note: '' })
+  const [addPayment, setAddPayment]       = useState(false)
+  const [newPayment, setNewPayment]       = useState({ vendor: '', label: 'Deposit', amount: '', due: '' })
+  const [reviewVendor, setReviewVendor]   = useState<{ id: string; name: string; category: string } | null>(null)
   const [checklistFilter, setChecklistFilter] = useState<'all' | 'upcoming' | 'done'>('all')
 
   const countdown   = daysBreakdown(form.date)
   const eventPassed = form.date ? new Date(form.date) < new Date() : false
   const budget      = Number(form.budget) || 0
-
-  const totalSpent = checklist.reduce((a, c) => {
-    if (c.budgetOverride !== undefined) return a + c.budgetOverride
-    const sel = c.savedVendors.find(v => v.name === c.selectedVendor)
-    return a + (sel?.price || 0)
-  }, 0)
-
-  const bookedCount  = checklist.filter(c => c.booked).length
-  const totalPaid    = payments.filter(p => p.paid).reduce((a, p) => a + p.amount, 0)
-  const progressPct  = Math.round((bookedCount / VENDOR_CATEGORIES.length) * 100)
-  const nextUnbooked = VENDOR_CATEGORIES.find(c => !getCatItem(c.id).booked)
 
   function getCatItem(catId: string) { return checklist.find(c => c.catId === catId)! }
   function updateCat(catId: string, updates: Partial<ChecklistItem>) {
@@ -105,44 +98,62 @@ export default function PlanningPage() {
   }
   function addVendorToCategory(catId: string) {
     if (!newVendor.name.trim()) return
-    const v: VendorEntry = { id: Date.now().toString(), name: newVendor.name.trim(), price: newVendor.price ? Number(newVendor.price) : undefined, phone: newVendor.phone || undefined, note: newVendor.note || undefined }
+    const v: VendorEntry = {
+      id: Date.now().toString(), name: newVendor.name.trim(),
+      price: newVendor.price ? Number(newVendor.price) : undefined,
+      phone: newVendor.phone || undefined, note: newVendor.note || undefined
+    }
     updateCat(catId, { savedVendors: [...getCatItem(catId).savedVendors, v] })
     setNewVendor({ name: '', price: '', phone: '', note: '' }); setAddingVendorTo(null)
   }
   function selectVendor(catId: string, vendorName: string) {
     const item = getCatItem(catId)
-    const sel = item.savedVendors.find(v => v.name === vendorName)
+    const sel  = item.savedVendors.find(v => v.name === vendorName)
     updateCat(catId, { selectedVendor: vendorName, booked: true, budgetOverride: sel?.price !== undefined ? sel.price : item.budgetOverride })
     setCompareMode(null)
   }
   function removeVendor(catId: string, vendorId: string) {
-    const item = getCatItem(catId)
+    const item     = getCatItem(catId)
     const removing = item.savedVendors.find(v => v.id === vendorId)
     const remaining = item.savedVendors.filter(v => v.id !== vendorId)
-    updateCat(catId, { savedVendors: remaining, selectedVendor: removing?.name === item.selectedVendor ? '' : item.selectedVendor, booked: removing?.name === item.selectedVendor ? false : item.booked })
+    updateCat(catId, {
+      savedVendors: remaining,
+      selectedVendor: removing?.name === item.selectedVendor ? '' : item.selectedVendor,
+      booked: removing?.name === item.selectedVendor ? false : item.booked
+    })
   }
+
+  const totalSpent = checklist.reduce((a, c) => {
+    if (c.budgetOverride !== undefined) return a + c.budgetOverride
+    const sel = c.savedVendors.find(v => v.name === c.selectedVendor)
+    return a + (sel?.price || 0)
+  }, 0)
+
+  const bookedCount   = checklist.filter(c => c.booked).length
+  const progressPct   = Math.round((bookedCount / VENDOR_CATEGORIES.length) * 100)
+  const nextUnbooked  = VENDOR_CATEGORIES.find(c => !getCatItem(c.id).booked)
 
   const filteredChecklist = VENDOR_CATEGORIES.filter(cat => {
     const item = getCatItem(cat.id)
-    if (checklistFilter === 'done') return item.booked
+    if (checklistFilter === 'done')     return item.booked
     if (checklistFilter === 'upcoming') return !item.booked
     return true
   })
 
-  // ── SETUP SCREEN ──
+  // ─── SETUP SCREEN ──────────────────────────────────────────
   if (step === 'setup') {
     return (
       <>
         <Nav />
         <div style={{ minHeight: '80vh', background: 'linear-gradient(160deg,#1a0a0f 0%,#2d1020 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
-          <div style={{ maxWidth: 580, width: '100%' }}>
-            <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 12 }}>Free Planning Hub</div>
-              <h1 className="font-serif" style={{ fontSize: 'clamp(26px,6vw,40px)', color: '#fff', marginBottom: 12, lineHeight: 1.2 }}>Your Quince Command Center</h1>
-              <p style={{ fontSize: 14, color: 'rgba(250,216,233,.55)', lineHeight: 1.6, marginBottom: 6 }}>Checklist · Budget tracker · Vendor comparison · Payment due dates — all free.</p>
-              <p style={{ fontSize: 13, color: 'rgba(250,216,233,.35)' }}>Try it now — no account needed. <Link href="/auth/signup" style={{ color: '#C97C8A', textDecoration: 'none', fontWeight: 500 }}>Sign up</Link> to save your progress.</p>
+          <div style={{ maxWidth: 560, width: '100%' }}>
+            <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 10 }}>Free Planning Hub</div>
+              <h1 className="font-serif" style={{ fontSize: 'clamp(26px,6vw,38px)', color: '#fff', marginBottom: 10, lineHeight: 1.2 }}>Your Quince Command Center</h1>
+              <p style={{ fontSize: 14, color: 'rgba(250,216,233,.5)', lineHeight: 1.6, marginBottom: 4 }}>Checklist · Budget tracker · Vendor comparison · Payment due dates — all free.</p>
+              <p style={{ fontSize: 13, color: 'rgba(250,216,233,.3)' }}>No account needed to try. <Link href="/auth/signup" style={{ color: '#C97C8A', textDecoration: 'none', fontWeight: 500 }}>Sign up</Link> to save your progress.</p>
             </div>
-            <div style={{ background: 'rgba(255,255,255,.04)', border: '0.5px solid rgba(250,216,233,.12)', borderRadius: 20, padding: '32px 28px' }}>
+            <div style={{ background: 'rgba(255,255,255,.04)', border: '0.5px solid rgba(250,216,233,.12)', borderRadius: 20, padding: '30px 26px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14, marginBottom: 20 }}>
                 {[
                   { key: 'daughter', label: "Daughter's Name", placeholder: 'Sofia',  type: 'text'   },
@@ -151,19 +162,24 @@ export default function PlanningPage() {
                   { key: 'guests',   label: 'Guest Count',      placeholder: '150',   type: 'number' },
                 ].map(f => (
                   <div key={f.key}>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(250,216,233,.4)', marginBottom: 7 }}>{f.label}</label>
-                    <input type={f.type} placeholder={f.placeholder} value={form[f.key as keyof typeof form]}
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(250,216,233,.35)', marginBottom: 6 }}>{f.label}</label>
+                    <input
+                      type={f.type}
+                      placeholder={f.placeholder}
+                      value={form[f.key as keyof typeof form]}
                       onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                      style={{ width: '100%', background: 'rgba(255,255,255,.07)', border: '0.5px solid rgba(250,216,233,.15)', borderRadius: 10, padding: '11px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', background: 'rgba(255,255,255,.07)', border: '0.5px solid rgba(250,216,233,.15)', borderRadius: 10, padding: '11px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                    />
                   </div>
                 ))}
               </div>
-              <button onClick={() => form.daughter && form.date ? setStep('dashboard') : alert("Please enter your daughter's name and event date")}
+              <button
+                onClick={() => form.daughter && form.date ? setStep('dashboard') : alert("Please enter your daughter's name and event date")}
                 style={{ width: '100%', background: 'linear-gradient(135deg,#C97C8A,#b56a78)', color: '#fff', border: 'none', padding: '14px 0', borderRadius: 30, fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 20px rgba(201,124,138,.3)' }}>
                 Open my command center →
               </button>
-              <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(250,216,233,.25)', marginTop: 14 }}>
-                Your info stays on this device until you <Link href="/auth/signup" style={{ color: '#C97C8A', textDecoration: 'none' }}>create a free account</Link>
+              <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(250,216,233,.2)', marginTop: 12 }}>
+                Already have an account? <Link href="/auth/login" style={{ color: '#C97C8A', textDecoration: 'none' }}>Sign in</Link>
               </p>
             </div>
           </div>
@@ -173,143 +189,192 @@ export default function PlanningPage() {
     )
   }
 
-  // ── DASHBOARD ──
+  // ─── DASHBOARD ──────────────────────────────────────────────
   return (
     <>
       <Nav />
 
-      {/* GUEST MODE BANNER */}
-      <div style={{ background: 'rgba(201,124,138,.08)', borderBottom: '0.5px solid rgba(201,124,138,.18)', padding: '9px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 13, color: '#7a5c65' }}>⚠ Guest mode — your progress won't save if you leave this page.</span>
-        <Link href="/auth/signup" style={{ background: '#C97C8A', color: '#fff', padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+      {/* GUEST BANNER */}
+      <div style={{ background: 'rgba(201,124,138,.07)', borderBottom: '0.5px solid rgba(201,124,138,.15)', padding: '8px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 12, color: '#7a5c65' }}>⚠ Guest mode — progress won't save if you leave.</span>
+        <Link href="/auth/signup" style={{ background: '#C97C8A', color: '#fff', padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
           Create free account to save →
         </Link>
       </div>
 
       {/* COUNTDOWN BANNER */}
       {countdown && (
-        <div style={{ background: 'rgba(201,160,64,.1)', borderBottom: '0.5px solid rgba(201,160,64,.2)', padding: '7px 20px', textAlign: 'center' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#C9A040', letterSpacing: '0.5px' }}>
-            {countdown.months > 0 ? `${countdown.months} MONTHS · ` : ''}{countdown.weeks > 0 ? `${countdown.weeks} WEEKS · ` : ''}{countdown.days} DAYS UNTIL {form.daughter.toUpperCase()}'S QUINCEAÑERA
+        <div style={{ background: 'rgba(201,160,64,.08)', borderBottom: '0.5px solid rgba(201,160,64,.2)', padding: '6px 20px', textAlign: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#C9A040', letterSpacing: '0.5px' }}>
+            {countdown.months > 0 ? `${countdown.months} MONTHS · ` : ''}
+            {countdown.weeks  > 0 ? `${countdown.weeks} WEEKS · `  : ''}
+            {countdown.days} DAYS UNTIL {form.daughter.toUpperCase()}&apos;S QUINCEAÑERA
           </span>
         </div>
       )}
       {eventPassed && (
-        <div style={{ background: 'rgba(26,122,74,.1)', borderBottom: '0.5px solid rgba(26,122,74,.2)', padding: '7px 20px', textAlign: 'center' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#5DCAA5' }}>🎉 THE BIG DAY HAS PASSED — LEAVE REVIEWS FOR YOUR VENDORS</span>
+        <div style={{ background: 'rgba(26,122,74,.08)', borderBottom: '0.5px solid rgba(26,122,74,.2)', padding: '6px 20px', textAlign: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#5DCAA5' }}>🎉 THE BIG DAY HAS PASSED — LEAVE REVIEWS FOR YOUR VENDORS</span>
         </div>
       )}
 
       {/* DARK HEADER */}
-      <div style={{ background: '#1a0a0f', padding: '22px 24px 0' }}>
-        <div style={{ maxWidth: 1300, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+      <div style={{ background: '#1a0a0f', padding: '20px 24px 0' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+
+          {/* TITLE ROW */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             <div>
-              <h1 className="font-serif" style={{ fontSize: 'clamp(20px,3.5vw,30px)', color: '#fff', marginBottom: 4 }}>
-                {form.daughter}'s Quinceañera
-                {form.date && <span style={{ color: 'rgba(250,216,233,.5)', fontWeight: 400 }}> — {new Date(form.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>}
+              <h1 className="font-serif" style={{ fontSize: 'clamp(18px,3vw,28px)', color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                {form.daughter}&apos;s Quinceañera
+                {form.date && (
+                  <span style={{ color: 'rgba(250,216,233,.45)', fontWeight: 400, fontSize: 'clamp(14px,2vw,20px)' }}>
+                    {' — '}{new Date(form.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                )}
               </h1>
-              <div style={{ fontSize: 12, color: 'rgba(250,216,233,.4)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 12, color: 'rgba(250,216,233,.35)', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 {form.guests && <span>Houston, TX · {form.guests} guests</span>}
-                {budget > 0 && <span>{fmt(budget)} budget</span>}
+                {budget > 0  && <span>{fmt(budget)} budget</span>}
               </div>
             </div>
             {countdown && (
-              <div style={{ textAlign: 'center', background: 'rgba(201,160,64,.12)', border: '0.5px solid rgba(201,160,64,.3)', borderRadius: 12, padding: '10px 18px', flexShrink: 0 }}>
-                <div className="font-serif" style={{ fontSize: 38, color: '#C9A040', lineHeight: 1 }}>{countdown.totalDays}</div>
-                <div style={{ fontSize: 9, color: 'rgba(250,216,233,.4)', marginTop: 2 }}>days away</div>
-                <div style={{ fontSize: 9, color: 'rgba(201,160,64,.5)', marginTop: 1 }}>
-                  {countdown.months > 0 ? `${countdown.months}mo ` : ''}{countdown.weeks > 0 ? `${countdown.weeks}wk ` : ''}{countdown.days}d
+              <div style={{ textAlign: 'center', background: 'rgba(201,160,64,.1)', border: '0.5px solid rgba(201,160,64,.28)', borderRadius: 12, padding: '10px 16px', flexShrink: 0 }}>
+                <div className="font-serif" style={{ fontSize: 34, color: '#C9A040', lineHeight: 1 }}>{countdown.totalDays}</div>
+                <div style={{ fontSize: 9, color: 'rgba(250,216,233,.35)', marginTop: 1 }}>days away</div>
+                <div style={{ fontSize: 9, color: 'rgba(201,160,64,.45)', marginTop: 1 }}>
+                  {countdown.months > 0 ? `${countdown.months}mo ` : ''}
+                  {countdown.weeks  > 0 ? `${countdown.weeks}wk `  : ''}
+                  {countdown.days}d
                 </div>
               </div>
             )}
           </div>
 
           {/* STAT STRIP */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '0.5px solid rgba(250,216,233,.08)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '0.5px solid rgba(250,216,233,.07)' }}>
             {[
-              ['BUDGET',   budget > 0 ? fmt(budget) : '—'],
-              ['SPENT',    fmt(totalSpent)],
-              ['BOOKED',   `${bookedCount} / ${VENDOR_CATEGORIES.length}`],
-              ['PROGRESS', `${progressPct}%`],
-            ].map(([l, v]) => (
-              <div key={l} style={{ padding: '12px 16px', borderRight: '0.5px solid rgba(250,216,233,.06)' }}>
-                <div style={{ fontSize: 9, color: 'rgba(250,216,233,.3)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 3 }}>{l}</div>
-                <div style={{ fontSize: 18, fontWeight: 500, color: l === 'SPENT' && totalSpent > budget && budget > 0 ? '#E24B4A' : '#fff' }}>{v}</div>
+              { label: 'BUDGET',   value: budget > 0 ? fmt(budget) : '—', warn: false },
+              { label: 'SPENT',    value: fmt(totalSpent), warn: budget > 0 && totalSpent > budget },
+              { label: 'BOOKED',   value: `${bookedCount} / ${VENDOR_CATEGORIES.length}`, warn: false },
+              { label: 'PROGRESS', value: `${progressPct}%`, warn: false },
+            ].map(s => (
+              <div key={s.label} style={{ padding: '11px 14px', borderRight: '0.5px solid rgba(250,216,233,.05)' }}>
+                <div style={{ fontSize: 9, color: 'rgba(250,216,233,.28)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 3 }}>{s.label}</div>
+                <div style={{ fontSize: 17, fontWeight: 500, color: s.warn ? '#E24B4A' : '#fff' }}>{s.value}</div>
               </div>
             ))}
           </div>
 
-          {/* NAV TABS */}
-          <div style={{ display: 'flex', borderTop: '0.5px solid rgba(250,216,233,.06)', overflowX: 'auto' }}>
-            {(['checklist', 'compare', 'timeline'] as const).map(key => (
-              <button key={key} onClick={() => setActiveSection(key)}
-                style={{ padding: '11px 20px', background: 'transparent', border: 'none', borderBottom: activeSection === key ? '2px solid #C97C8A' : '2px solid transparent', color: activeSection === key ? '#FAD8E9' : 'rgba(250,216,233,.35)', fontSize: 13, fontWeight: activeSection === key ? 500 : 400, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                {key === 'checklist' ? 'Checklist' : key === 'compare' ? 'Compare Vendors' : 'Timeline'}
+          {/* PINK PILL TABS */}
+          <div style={{ display: 'flex', gap: 6, padding: '12px 0 0', borderTop: '0.5px solid rgba(250,216,233,.06)', overflowX: 'auto' }}>
+            {([
+              { key: 'checklist', label: 'Checklist'       },
+              { key: 'compare',   label: 'Compare Vendors' },
+              { key: 'timeline',  label: 'Timeline'        },
+            ] as const).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                style={{
+                  padding: '7px 18px',
+                  borderRadius: 20,
+                  border: activeTab === t.key ? 'none' : '1px solid rgba(201,124,138,.35)',
+                  background: activeTab === t.key ? '#C97C8A' : 'transparent',
+                  color: activeTab === t.key ? '#fff' : '#C97C8A',
+                  fontSize: 13,
+                  fontWeight: activeTab === t.key ? 600 : 400,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all .15s',
+                  marginBottom: 12,
+                }}
+              >
+                {t.label}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div style={{ maxWidth: 1300, margin: '0 auto', padding: '20px 16px 80px' }}>
+      {/* PAGE BODY */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px' }}>
 
-        {/* ── CHECKLIST VIEW ── */}
-        {activeSection === 'checklist' && (
+        {/* ══════════════════════════════════════════
+            CHECKLIST TAB
+        ══════════════════════════════════════════ */}
+        {activeTab === 'checklist' && (
           <div className="planning-grid">
 
-            {/* LEFT — checklist (fixed narrow) + saved vendors + CTA */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+            {/* ── LEFT COLUMN ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-              {/* PLANNING CHECKLIST — scrollable box */}
+              {/* PLANNING CHECKLIST */}
               <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, overflow: 'hidden' }}>
-                <div style={{ padding: '12px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '0.5px solid rgba(201,124,138,.1)', gap: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A' }}>Planning Checklist</div>
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                {/* Header */}
+                <div style={{ padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '0.5px solid rgba(201,124,138,.1)', gap: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A' }}>Planning Checklist</div>
+                  {/* filter pills */}
+                  <div style={{ display: 'flex', gap: 4 }}>
                     {(['all', 'upcoming', 'done'] as const).map(f => (
                       <button key={f} onClick={() => setChecklistFilter(f)}
-                        style={{ padding: '3px 10px', borderRadius: 20, border: `0.5px solid ${checklistFilter === f ? '#C97C8A' : 'rgba(201,124,138,.25)'}`, background: checklistFilter === f ? '#C97C8A' : 'transparent', color: checklistFilter === f ? '#fff' : '#7a5c65', fontSize: 10, fontWeight: 500, cursor: 'pointer', textTransform: 'capitalize' }}>
+                        style={{ padding: '3px 9px', borderRadius: 20, border: `0.5px solid ${checklistFilter === f ? '#C97C8A' : 'rgba(201,124,138,.25)'}`, background: checklistFilter === f ? '#C97C8A' : 'transparent', color: checklistFilter === f ? '#fff' : '#7a5c65', fontSize: 10, fontWeight: 500, cursor: 'pointer', textTransform: 'capitalize' }}>
                         {f}
                       </button>
                     ))}
                   </div>
                 </div>
-                {/* SCROLLABLE — only this box scrolls, not the whole page */}
-                <div style={{ height: 400, overflowY: 'auto', padding: '6px 14px 10px' }}>
+                {/* Scrollable list */}
+                <div style={{ height: 380, overflowY: 'auto', padding: '6px 14px 8px' }}>
                   {TIMELINE_GROUPS.map(group => {
                     const groupCats = filteredChecklist.filter(cat => cat.month === group.months)
                     if (groupCats.length === 0) return null
                     const allDone = groupCats.every(cat => getCatItem(cat.id).booked)
                     return (
-                      <div key={group.months} style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: allDone ? '#1a7a4a' : 'rgba(201,124,138,.5)', marginBottom: 6, paddingTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div key={group.months} style={{ marginBottom: 10 }}>
+                        {/* Group label */}
+                        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: allDone ? '#1a7a4a' : 'rgba(201,124,138,.45)', marginBottom: 4, paddingTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
                           {group.label}
-                          {allDone && <span style={{ fontSize: 8, background: 'rgba(26,122,74,.12)', color: '#1a7a4a', padding: '1px 6px', borderRadius: 8 }}>DONE</span>}
+                          {allDone && <span style={{ fontSize: 8, background: 'rgba(26,122,74,.1)', color: '#1a7a4a', padding: '1px 5px', borderRadius: 6 }}>DONE</span>}
                         </div>
+                        {/* Rows */}
                         {groupCats.map(cat => {
                           const item = getCatItem(cat.id)
                           return (
-                            <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '0.5px solid rgba(201,124,138,.06)' }}>
-                              <button onClick={() => updateCat(cat.id, { booked: !item.booked })}
-                                style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${item.booked ? '#1a7a4a' : '#C97C8A'}`, background: item.booked ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}>
-                                {item.booked && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>}
+                            <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '0.5px solid rgba(201,124,138,.05)' }}>
+                              {/* Checkbox */}
+                              <button
+                                onClick={() => updateCat(cat.id, { booked: !item.booked })}
+                                style={{ width: 17, height: 17, borderRadius: '50%', border: `2px solid ${item.booked ? '#1a7a4a' : '#C97C8A'}`, background: item.booked ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', padding: 0 }}>
+                                {item.booked && <Checkmark size={8} />}
                               </button>
+                              {/* Name */}
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 500, color: item.booked ? '#aaa' : '#1a0a0f', textDecoration: item.booked ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.label}</div>
-                                {item.selectedVendor && <div style={{ fontSize: 11, color: '#C97C8A', fontWeight: 500 }}>{item.selectedVendor}</div>}
+                                <div style={{ fontSize: 12, fontWeight: 500, color: item.booked ? '#aaa' : '#1a0a0f', textDecoration: item.booked ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {cat.label}
+                                </div>
+                                {item.selectedVendor && (
+                                  <div style={{ fontSize: 10, color: '#C97C8A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {item.selectedVendor}
+                                  </div>
+                                )}
                               </div>
-                              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                              {/* Actions */}
+                              <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
                                 {item.booked && item.selectedVendor && eventPassed && (
                                   <button onClick={() => setReviewVendor({ id: '', name: item.selectedVendor, category: cat.label })}
-                                    style={{ fontSize: 10, color: '#C9A040', background: 'rgba(201,160,64,.08)', border: 'none', borderRadius: 20, padding: '2px 7px', cursor: 'pointer' }}>⭐</button>
+                                    style={{ fontSize: 10, color: '#C9A040', background: 'rgba(201,160,64,.08)', border: 'none', borderRadius: 20, padding: '2px 6px', cursor: 'pointer' }}>⭐</button>
                                 )}
                                 {item.savedVendors.length > 0 && (
-                                  <button onClick={() => { setActiveSection('compare'); setCompareMode(cat.id) }}
-                                    style={{ fontSize: 10, color: '#C9A040', background: 'rgba(201,160,64,.08)', border: 'none', borderRadius: 20, padding: '2px 7px', cursor: 'pointer' }}>{item.savedVendors.length} saved</button>
+                                  <button onClick={() => { setActiveTab('compare'); setCompareMode(cat.id) }}
+                                    style={{ fontSize: 10, color: '#C9A040', background: 'rgba(201,160,64,.08)', border: 'none', borderRadius: 20, padding: '2px 6px', cursor: 'pointer' }}>
+                                    {item.savedVendors.length} saved
+                                  </button>
                                 )}
                                 <Link href={`/vendors?category=${cat.slug}`}
-                                  style={{ fontSize: 10, color: '#bbb', background: 'rgba(0,0,0,.04)', borderRadius: 20, padding: '2px 8px', textDecoration: 'none' }}>Browse →</Link>
+                                  style={{ fontSize: 10, color: '#aaa', background: 'rgba(0,0,0,.04)', borderRadius: 20, padding: '2px 7px', textDecoration: 'none' }}>
+                                  Browse →
+                                </Link>
                               </div>
                             </div>
                           )
@@ -321,92 +386,99 @@ export default function PlanningPage() {
               </div>
 
               {/* MY SAVED VENDORS */}
-              <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: '14px 16px' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 10 }}>My Saved Vendors</div>
+              <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: '13px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 10 }}>My Saved Vendors</div>
                 {VENDOR_CATEGORIES.map((cat, i) => {
                   const item = getCatItem(cat.id)
                   return (
-                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < VENDOR_CATEGORIES.length - 1 ? '0.5px solid rgba(201,124,138,.07)' : 'none' }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: '#C97C8A', textTransform: 'uppercase', letterSpacing: '.5px', width: 90, flexShrink: 0 }}>{cat.label}</div>
+                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < VENDOR_CATEGORIES.length - 1 ? '0.5px solid rgba(201,124,138,.06)' : 'none' }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: '#C97C8A', textTransform: 'uppercase', letterSpacing: '.4px', width: 86, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.label}</div>
                       <div style={{ flex: 1, fontSize: 12, color: item.selectedVendor ? '#1a0a0f' : item.savedVendors.length > 0 ? '#C9A040' : '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.selectedVendor || (item.savedVendors.length > 0 ? item.savedVendors.map(v => v.name).join(' · ') : 'Not selected yet')}
+                        {item.selectedVendor || (item.savedVendors.length > 0 ? item.savedVendors.map(v => v.name).join(' · ') : 'Not selected')}
                       </div>
                       {item.booked ? (
-                        <div style={{ fontSize: 11, color: '#1a7a4a', fontWeight: 600, flexShrink: 0 }}>✓ Booked</div>
+                        <div style={{ fontSize: 10, color: '#1a7a4a', fontWeight: 700, flexShrink: 0 }}>✓ Booked</div>
                       ) : item.savedVendors.length > 1 ? (
-                        <button onClick={() => { setActiveSection('compare'); setCompareMode(cat.id) }}
-                          style={{ fontSize: 11, color: '#C9A040', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, flexShrink: 0 }}>Comparing {item.savedVendors.length}</button>
+                        <button onClick={() => { setActiveTab('compare'); setCompareMode(cat.id) }}
+                          style={{ fontSize: 10, color: '#C9A040', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, flexShrink: 0 }}>
+                          Comparing {item.savedVendors.length}
+                        </button>
                       ) : (
-                        <Link href={`/vendors?category=${cat.slug}`} style={{ fontSize: 11, color: '#C97C8A', textDecoration: 'none', flexShrink: 0 }}>+ Browse</Link>
+                        <Link href={`/vendors?category=${cat.slug}`} style={{ fontSize: 10, color: '#C97C8A', textDecoration: 'none', flexShrink: 0 }}>+ Browse</Link>
                       )}
                     </div>
                   )
                 })}
-                <button onClick={() => setActiveSection('compare')}
-                  style={{ width: '100%', marginTop: 10, padding: '8px 0', border: '0.5px dashed rgba(201,124,138,.3)', borderRadius: 10, background: 'transparent', color: '#C97C8A', fontSize: 12, cursor: 'pointer' }}>
-                  + Add vendor to list
+                <button onClick={() => setActiveTab('compare')}
+                  style={{ width: '100%', marginTop: 10, padding: '7px 0', border: '0.5px dashed rgba(201,124,138,.3)', borderRadius: 10, background: 'transparent', color: '#C97C8A', fontSize: 12, cursor: 'pointer' }}>
+                  + Add vendor to compare
                 </button>
               </div>
 
-              {/* SAVE YOUR PROGRESS CTA */}
-              <div style={{ background: 'linear-gradient(135deg,#1a0a0f,#2d1020)', borderRadius: 14, padding: '20px', border: '0.5px solid rgba(201,124,138,.2)', textAlign: 'center' }}>
-                <div style={{ fontSize: 15, color: '#fff', fontWeight: 600, marginBottom: 6 }}>Save your progress</div>
-                <div style={{ fontSize: 13, color: 'rgba(250,216,233,.5)', marginBottom: 14, lineHeight: 1.5 }}>
-                  Create a free account to save your checklist, vendors &amp; payments — access from any device.
+              {/* SAVE PROGRESS CTA */}
+              <div style={{ background: 'linear-gradient(135deg,#1a0a0f,#2d1020)', borderRadius: 14, padding: '18px', border: '0.5px solid rgba(201,124,138,.2)', textAlign: 'center' }}>
+                <div style={{ fontSize: 14, color: '#fff', fontWeight: 600, marginBottom: 6 }}>Save your progress</div>
+                <div style={{ fontSize: 12, color: 'rgba(250,216,233,.45)', marginBottom: 14, lineHeight: 1.5 }}>
+                  Free account saves your checklist, vendors &amp; payments across devices.
                 </div>
                 <Link href="/auth/signup"
-                  style={{ display: 'inline-block', background: 'linear-gradient(135deg,#C97C8A,#b56a78)', color: '#fff', padding: '11px 28px', borderRadius: 24, fontSize: 13, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 16px rgba(201,124,138,.3)' }}>
+                  style={{ display: 'inline-block', background: 'linear-gradient(135deg,#C97C8A,#b56a78)', color: '#fff', padding: '10px 26px', borderRadius: 24, fontSize: 13, fontWeight: 600, textDecoration: 'none', boxShadow: '0 4px 16px rgba(201,124,138,.3)' }}>
                   Create free account →
                 </Link>
-                <div style={{ fontSize: 11, color: 'rgba(250,216,233,.25)', marginTop: 10 }}>
+                <div style={{ fontSize: 11, color: 'rgba(250,216,233,.22)', marginTop: 10 }}>
                   Already have an account? <Link href="/auth/login" style={{ color: '#C97C8A', textDecoration: 'none' }}>Sign in</Link>
                 </div>
               </div>
             </div>
 
-            {/* RIGHT — budget, payments, progress */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+            {/* ── RIGHT COLUMN ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-              {/* BUDGET TRACKER — editable */}
+              {/* BUDGET TRACKER */}
               <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: '16px 18px' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 12 }}>Budget Tracker</div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 8 }}>
-                  <div className="font-serif" style={{ fontSize: 30, color: '#1a0a0f', lineHeight: 1 }}>{fmt(totalSpent)}</div>
-                  <div style={{ fontSize: 13, color: '#7a5c65', marginBottom: 3 }}>of {budget > 0 ? fmt(budget) : '—'}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 10 }}>Budget Tracker</div>
+                {/* Total spent row */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 6 }}>
+                  <div className="font-serif" style={{ fontSize: 28, color: '#1a0a0f', lineHeight: 1 }}>{fmt(totalSpent)}</div>
+                  <div style={{ fontSize: 12, color: '#7a5c65', paddingBottom: 2 }}>of {budget > 0 ? fmt(budget) : '—'}</div>
                 </div>
+                {/* Progress bar */}
                 {budget > 0 && (
-                  <>
-                    <div style={{ height: 7, borderRadius: 4, background: 'rgba(201,124,138,.1)', overflow: 'hidden', marginBottom: 6 }}>
-                      <div style={{ height: '100%', borderRadius: 4, background: totalSpent > budget ? '#E24B4A' : 'linear-gradient(90deg,#C97C8A,#C9A040)', width: `${Math.min((totalSpent / budget) * 100, 100)}%`, transition: 'width 0.3s' }} />
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ height: 6, borderRadius: 3, background: 'rgba(201,124,138,.1)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 3, background: totalSpent > budget ? '#E24B4A' : 'linear-gradient(90deg,#C97C8A,#C9A040)', width: `${Math.min((totalSpent / budget) * 100, 100)}%`, transition: 'width .3s' }} />
                     </div>
-                    <div style={{ fontSize: 11, color: '#bbb', marginBottom: 10 }}>Tap any amount to edit your actual cost</div>
-                  </>
+                    <div style={{ fontSize: 10, color: '#ccc', marginTop: 4 }}>Tap any amount to edit your actual cost</div>
+                  </div>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {/* Category rows */}
+                <div>
                   {VENDOR_CATEGORIES.map(cat => {
-                    const item = getCatItem(cat.id)
+                    const item      = getCatItem(cat.id)
                     const suggested = budget ? Math.round(budget * (BUDGET_SPLITS[cat.id] || 0)) : 0
                     const currentVal = item.budgetOverride !== undefined
                       ? item.budgetOverride
                       : (item.savedVendors.find(v => v.name === item.selectedVendor)?.price ?? '')
+                    const isEdited = item.budgetOverride !== undefined
                     return (
-                      <div key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '0.5px solid rgba(201,124,138,.07)', gap: 8 }}>
+                      <div key={cat.id} style={{ display: 'flex', alignItems: 'center', padding: '5px 0', borderBottom: '0.5px solid rgba(201,124,138,.06)', gap: 8 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.label}</div>
-                          {item.selectedVendor && <div style={{ fontSize: 10, color: '#C97C8A' }}>{item.selectedVendor}</div>}
+                          {item.selectedVendor && <div style={{ fontSize: 10, color: '#C97C8A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.selectedVendor}</div>}
                         </div>
                         <input
                           type="number"
                           value={currentVal}
                           placeholder={suggested > 0 ? String(suggested) : '0'}
                           onChange={e => setBudgetOverride(cat.id, e.target.value)}
-                          style={{ width: 76, border: '0.5px solid rgba(201,124,138,.25)', borderRadius: 6, padding: '4px 7px', fontSize: 12, outline: 'none', textAlign: 'right', color: '#1a0a0f', background: item.budgetOverride !== undefined ? 'rgba(201,124,138,.05)' : '#fafafa', fontWeight: item.budgetOverride !== undefined ? 500 : 400 }}
+                          style={{ width: 76, border: `0.5px solid ${isEdited ? 'rgba(201,124,138,.4)' : 'rgba(201,124,138,.2)'}`, borderRadius: 6, padding: '4px 7px', fontSize: 12, outline: 'none', textAlign: 'right', color: '#1a0a0f', background: isEdited ? 'rgba(201,124,138,.04)' : '#fafafa', fontWeight: isEdited ? 500 : 400 }}
                         />
                       </div>
                     )
                   })}
+                  {/* Remaining */}
                   {budget > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: budget - totalSpent < 0 ? '#E24B4A' : '#1a7a4a', paddingTop: 8, marginTop: 2 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 700, color: budget - totalSpent < 0 ? '#E24B4A' : '#1a7a4a', paddingTop: 10, marginTop: 2, borderTop: '0.5px solid rgba(201,124,138,.12)' }}>
                       <span>Remaining</span>
                       <span>{fmt(Math.abs(budget - totalSpent))}{budget - totalSpent < 0 ? ' over' : ''}</span>
                     </div>
@@ -416,26 +488,26 @@ export default function PlanningPage() {
 
               {/* PAYMENT DUE DATES */}
               <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: '16px 18px' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 12 }}>Payment Due Dates</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 12 }}>Payment Due Dates</div>
                 {payments.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#ccc', textAlign: 'center', padding: '10px 0 4px' }}>No payments tracked yet</div>
+                  <div style={{ fontSize: 13, color: '#ccc', textAlign: 'center', padding: '8px 0' }}>No payments tracked yet</div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
-                    {payments.sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime()).map(p => {
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 6 }}>
+                    {[...payments].sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime()).map(p => {
                       const badge = getUrgencyBadge(p.due, p.paid)
                       return (
                         <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <button onClick={() => setPayments(prev => prev.map(x => x.id === p.id ? { ...x, paid: !x.paid } : x))}
-                            style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${p.paid ? '#1a7a4a' : '#C97C8A'}`, background: p.paid ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}>
-                            {p.paid && <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>}
+                            style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${p.paid ? '#1a7a4a' : '#C97C8A'}`, background: p.paid ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', padding: 0 }}>
+                            {p.paid && <Checkmark size={7} />}
                           </button>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 12, fontWeight: 500, color: p.paid ? '#aaa' : '#1a0a0f', textDecoration: p.paid ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.vendor}</div>
-                            <div style={{ fontSize: 11, color: '#7a5c65' }}>{fmt(p.amount)} · Due {new Date(p.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                            <div style={{ fontSize: 10, color: '#7a5c65' }}>{fmt(p.amount)} · Due {new Date(p.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                           </div>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, padding: '3px 8px', borderRadius: 20, flexShrink: 0 }}>{badge.label}</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: badge.color, background: badge.bg, padding: '2px 7px', borderRadius: 20, flexShrink: 0, letterSpacing: '.3px' }}>{badge.label}</div>
                           <button onClick={() => setPayments(prev => prev.filter(x => x.id !== p.id))}
-                            style={{ background: 'transparent', border: 'none', color: '#ddd', cursor: 'pointer', fontSize: 16, padding: '0 2px', flexShrink: 0 }}>×</button>
+                            style={{ background: 'transparent', border: 'none', color: '#ddd', cursor: 'pointer', fontSize: 16, padding: '0 2px', flexShrink: 0, lineHeight: 1 }}>×</button>
                         </div>
                       )
                     })}
@@ -445,16 +517,20 @@ export default function PlanningPage() {
                   <div style={{ background: 'rgba(201,124,138,.04)', border: '0.5px solid rgba(201,124,138,.2)', borderRadius: 10, padding: 12, marginTop: 6 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                       {[
-                        { key: 'vendor', label: 'Vendor',    placeholder: 'Bell Tower', type: 'text'   },
-                        { key: 'label',  label: 'Type',      placeholder: 'Deposit',    type: 'text'   },
-                        { key: 'amount', label: 'Amount ($)', placeholder: '1500',      type: 'number' },
-                        { key: 'due',    label: 'Due Date',  placeholder: '',           type: 'date'   },
+                        { key: 'vendor', label: 'Vendor',     placeholder: 'Bell Tower', type: 'text'   },
+                        { key: 'label',  label: 'Type',       placeholder: 'Deposit',    type: 'text'   },
+                        { key: 'amount', label: 'Amount ($)', placeholder: '1500',       type: 'number' },
+                        { key: 'due',    label: 'Due Date',   placeholder: '',           type: 'date'   },
                       ].map(f => (
                         <div key={f.key}>
                           <label style={{ display: 'block', fontSize: 10, color: '#7a5c65', marginBottom: 3 }}>{f.label}</label>
-                          <input type={f.type} placeholder={f.placeholder} value={newPayment[f.key as keyof typeof newPayment]}
+                          <input
+                            type={f.type}
+                            placeholder={f.placeholder}
+                            value={newPayment[f.key as keyof typeof newPayment]}
                             onChange={e => setNewPayment(p => ({ ...p, [f.key]: e.target.value }))}
-                            style={{ width: '100%', border: '0.5px solid rgba(201,124,138,.3)', borderRadius: 7, padding: '7px 9px', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+                            style={{ width: '100%', border: '0.5px solid rgba(201,124,138,.3)', borderRadius: 7, padding: '7px 9px', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}
+                          />
                         </div>
                       ))}
                     </div>
@@ -478,39 +554,41 @@ export default function PlanningPage() {
 
               {/* OVERALL PROGRESS */}
               <div style={{ background: '#fff', border: '0.5px solid rgba(201,124,138,.18)', borderRadius: 14, padding: '16px 18px' }}>
-                <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 14 }}>Overall Progress</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#C97C8A', marginBottom: 14 }}>Overall Progress</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                  {/* Donut */}
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <svg width="74" height="74" viewBox="0 0 74 74" style={{ transform: 'rotate(-90deg)' }}>
-                      <circle cx="37" cy="37" r="29" fill="none" stroke="rgba(201,124,138,.12)" strokeWidth="6"/>
-                      <circle cx="37" cy="37" r="29" fill="none" stroke="#C97C8A" strokeWidth="6"
-                        strokeDasharray={`${2 * Math.PI * 29}`}
-                        strokeDashoffset={`${2 * Math.PI * 29 * (1 - progressPct / 100)}`}
+                    <svg width="76" height="76" viewBox="0 0 76 76" style={{ transform: 'rotate(-90deg)' }}>
+                      <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(201,124,138,.1)" strokeWidth="7"/>
+                      <circle cx="38" cy="38" r="30" fill="none" stroke="#C97C8A" strokeWidth="7"
+                        strokeDasharray={`${2 * Math.PI * 30}`}
+                        strokeDashoffset={`${2 * Math.PI * 30 * (1 - progressPct / 100)}`}
                         strokeLinecap="round"/>
                     </svg>
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span className="font-serif" style={{ fontSize: 16, color: '#C97C8A', fontWeight: 600 }}>{progressPct}%</span>
+                      <span className="font-serif" style={{ fontSize: 15, color: '#C97C8A', fontWeight: 600 }}>{progressPct}%</span>
                     </div>
                   </div>
+                  {/* Labels */}
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#1a0a0f', marginBottom: 3 }}>
                       {progressPct === 100 ? '🎉 All done!' : progressPct >= 50 ? 'Great progress!' : 'Just getting started!'}
                     </div>
-                    <div style={{ fontSize: 12, color: '#7a5c65', marginBottom: 6 }}>{bookedCount} of {VENDOR_CATEGORIES.length} tasks done</div>
+                    <div style={{ fontSize: 12, color: '#7a5c65', marginBottom: 6 }}>{bookedCount} of {VENDOR_CATEGORIES.length} vendors booked</div>
                     {nextUnbooked && !eventPassed && (
-                      <>
-                        <Link href={`/vendors?category=${nextUnbooked.slug}`}
-                          style={{ fontSize: 12, color: '#C97C8A', fontWeight: 500, textDecoration: 'none', display: 'block' }}>
-                          Next: Book your {nextUnbooked.label} →
-                        </Link>
-                        {countdown && (
-                          <div style={{ fontSize: 11, color: '#7a5c65', marginTop: 2 }}>
-                            {countdown.months > 0 ? `${countdown.months}mo ` : ''}{countdown.weeks > 0 ? `${countdown.weeks}wk ` : ''}{countdown.days}d remaining
-                          </div>
-                        )}
-                      </>
+                      <Link href={`/vendors?category=${nextUnbooked.slug}`}
+                        style={{ fontSize: 12, color: '#C97C8A', fontWeight: 600, textDecoration: 'none', display: 'block' }}>
+                        Next: Book your {nextUnbooked.label} →
+                      </Link>
                     )}
-                    {eventPassed && <div style={{ fontSize: 12, color: '#5DCAA5', fontWeight: 500 }}>🎉 Leave reviews for your vendors!</div>}
+                    {countdown && nextUnbooked && (
+                      <div style={{ fontSize: 11, color: '#7a5c65', marginTop: 2 }}>
+                        {countdown.months > 0 ? `${countdown.months}mo ` : ''}
+                        {countdown.weeks  > 0 ? `${countdown.weeks}wk `  : ''}
+                        {countdown.days}d remaining
+                      </div>
+                    )}
+                    {eventPassed && <div style={{ fontSize: 12, color: '#5DCAA5', fontWeight: 600 }}>🎉 Leave reviews for your vendors!</div>}
                   </div>
                 </div>
               </div>
@@ -518,34 +596,37 @@ export default function PlanningPage() {
           </div>
         )}
 
-        {/* ── COMPARE VENDORS ── */}
-        {activeSection === 'compare' && (
+        {/* ══════════════════════════════════════════
+            COMPARE VENDORS TAB
+        ══════════════════════════════════════════ */}
+        {activeTab === 'compare' && (
           <div>
             <div style={{ marginBottom: 16 }}>
-              <h2 className="font-serif" style={{ fontSize: 22, color: '#1a0a0f' }}>Compare & Save Vendors</h2>
-              <p style={{ fontSize: 13, color: '#7a5c65', marginTop: 4 }}>Save up to 3 vendors per category, compare side by side, then pick one</p>
+              <h2 className="font-serif" style={{ fontSize: 22, color: '#1a0a0f' }}>Compare &amp; Save Vendors</h2>
+              <p style={{ fontSize: 13, color: '#7a5c65', marginTop: 4 }}>Save up to 3 vendors per category, compare side by side, then pick one.</p>
             </div>
             {VENDOR_CATEGORIES.map(cat => {
-              const item = getCatItem(cat.id)
+              const item   = getCatItem(cat.id)
               const isOpen = compareMode === cat.id
               return (
-                <div key={cat.id} style={{ background: '#fff', border: `0.5px solid ${item.booked ? 'rgba(26,122,74,.2)' : 'rgba(201,124,138,.18)'}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
+                <div key={cat.id} style={{ background: '#fff', border: `0.5px solid ${item.booked ? 'rgba(26,122,74,.2)' : 'rgba(201,124,138,.18)'}`, borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
                   <div onClick={() => setCompareMode(isOpen ? null : cat.id)}
-                    style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${item.booked ? '#1a7a4a' : '#C97C8A'}`, background: item.booked ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      {item.booked && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20,6 9,17 4,12"/></svg>}
+                    style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <div style={{ width: 19, height: 19, borderRadius: '50%', border: `2px solid ${item.booked ? '#1a7a4a' : '#C97C8A'}`, background: item.booked ? '#1a7a4a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {item.booked && <Checkmark size={8} />}
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 500, color: '#1a0a0f', flex: 1 }}>{cat.label}</span>
                     {item.selectedVendor && <span style={{ fontSize: 12, color: '#1a7a4a', fontWeight: 500 }}>✓ {item.selectedVendor}</span>}
-                    {!item.selectedVendor && item.savedVendors.length > 0 && <span style={{ fontSize: 12, color: '#C9A040' }}>{item.savedVendors.length} saved · pick one</span>}
+                    {!item.selectedVendor && item.savedVendors.length > 0  && <span style={{ fontSize: 12, color: '#C9A040' }}>{item.savedVendors.length} saved · pick one</span>}
                     {!item.selectedVendor && item.savedVendors.length === 0 && <span style={{ fontSize: 12, color: '#ccc' }}>No vendors saved yet</span>}
-                    <svg width="14" height="14" fill="none" stroke="#7a5c65" strokeWidth="2" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><polyline points="3,5 7,9 11,5"/></svg>
+                    <svg width="14" height="14" fill="none" stroke="#7a5c65" strokeWidth="2" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s', flexShrink: 0 }}><polyline points="3,5 7,9 11,5"/></svg>
                   </div>
                   {isOpen && (
                     <div style={{ padding: '0 18px 18px', borderTop: '0.5px solid rgba(201,124,138,.08)' }}>
                       {item.savedVendors.length === 0 ? (
                         <div style={{ padding: '16px 0', textAlign: 'center', color: '#7a5c65', fontSize: 13 }}>
-                          No vendors saved yet. <Link href={`/vendors?category=${cat.slug}`} style={{ color: '#C97C8A', textDecoration: 'none', fontWeight: 500 }}>Browse {cat.label} →</Link>
+                          No vendors saved yet.{' '}
+                          <Link href={`/vendors?category=${cat.slug}`} style={{ color: '#C97C8A', textDecoration: 'none', fontWeight: 500 }}>Browse {cat.label} →</Link>
                         </div>
                       ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, marginTop: 14 }}>
@@ -557,7 +638,7 @@ export default function PlanningPage() {
                               <div style={{ fontSize: 14, fontWeight: 500, color: '#1a0a0f', marginBottom: 4 }}>{v.name}</div>
                               {v.price && <div style={{ fontSize: 12, color: '#7a5c65', marginBottom: 3 }}>Starting at <strong>{fmt(v.price)}</strong></div>}
                               {v.phone && <div style={{ fontSize: 12, color: '#7a5c65', marginBottom: 3 }}>{v.phone}</div>}
-                              {v.note && <div style={{ fontSize: 12, color: '#7a5c65', fontStyle: 'italic', marginBottom: 8 }}>{v.note}</div>}
+                              {v.note  && <div style={{ fontSize: 12, color: '#7a5c65', fontStyle: 'italic', marginBottom: 8 }}>{v.note}</div>}
                               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                                 {v.name !== item.selectedVendor ? (
                                   <button onClick={() => selectVendor(cat.id, v.name)}
@@ -577,16 +658,20 @@ export default function PlanningPage() {
                         <div style={{ marginTop: 14, background: 'rgba(201,124,138,.04)', border: '0.5px solid rgba(201,124,138,.2)', borderRadius: 12, padding: 16 }}>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10, marginBottom: 10 }}>
                             {[
-                              { key: 'name', label: 'Vendor Name *', placeholder: 'DreamLite Productions', type: 'text' },
-                              { key: 'price', label: 'Starting Price', placeholder: '2800', type: 'number' },
-                              { key: 'phone', label: 'Phone', placeholder: '(713) 555-0100', type: 'tel' },
-                              { key: 'note', label: 'Note', placeholder: 'Includes same-day edit', type: 'text' },
+                              { key: 'name',  label: 'Vendor Name *', placeholder: 'DreamLite Productions', type: 'text'   },
+                              { key: 'price', label: 'Starting Price', placeholder: '2800',                  type: 'number' },
+                              { key: 'phone', label: 'Phone',          placeholder: '(713) 555-0100',        type: 'tel'    },
+                              { key: 'note',  label: 'Note',           placeholder: 'Includes same-day edit', type: 'text'  },
                             ].map(f => (
                               <div key={f.key}>
                                 <label style={{ display: 'block', fontSize: 11, color: '#7a5c65', marginBottom: 4 }}>{f.label}</label>
-                                <input type={f.type} placeholder={f.placeholder} value={newVendor[f.key as keyof typeof newVendor]}
+                                <input
+                                  type={f.type}
+                                  placeholder={f.placeholder}
+                                  value={newVendor[f.key as keyof typeof newVendor]}
                                   onChange={e => setNewVendor(p => ({ ...p, [f.key]: e.target.value }))}
-                                  style={{ width: '100%', border: '0.5px solid rgba(201,124,138,.3)', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+                                  style={{ width: '100%', border: '0.5px solid rgba(201,124,138,.3)', borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                                />
                               </div>
                             ))}
                           </div>
@@ -598,7 +683,7 @@ export default function PlanningPage() {
                           </div>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
                           {item.savedVendors.length < 3 && (
                             <button onClick={() => setAddingVendorTo(cat.id)}
                               style={{ background: 'transparent', border: '0.5px dashed rgba(201,124,138,.4)', color: '#C97C8A', padding: '8px 16px', borderRadius: 20, fontSize: 12, cursor: 'pointer' }}>
@@ -607,7 +692,7 @@ export default function PlanningPage() {
                           )}
                           <Link href={`/vendors?category=${cat.slug}`}
                             style={{ color: '#7a5c65', fontSize: 12, textDecoration: 'none', padding: '8px 16px', border: '0.5px solid rgba(201,124,138,.2)', borderRadius: 20 }}>
-                            Browse {cat.label} on MYQ →
+                            Browse {cat.label} →
                           </Link>
                         </div>
                       )}
@@ -619,19 +704,21 @@ export default function PlanningPage() {
           </div>
         )}
 
-        {/* ── TIMELINE ── */}
-        {activeSection === 'timeline' && (
+        {/* ══════════════════════════════════════════
+            TIMELINE TAB
+        ══════════════════════════════════════════ */}
+        {activeTab === 'timeline' && (
           <div style={{ maxWidth: 600 }}>
             <h2 className="font-serif" style={{ fontSize: 22, color: '#1a0a0f', marginBottom: 24 }}>Planning Timeline</h2>
             {TIMELINE_GROUPS.map((t, i) => {
               const monthsLeft = countdown?.months ?? null
-              const isPast    = monthsLeft !== null && t.months > monthsLeft
-              const isCurrent = monthsLeft !== null && monthsLeft <= t.months && monthsLeft > (TIMELINE_GROUPS[i + 1]?.months ?? -1)
+              const isPast     = monthsLeft !== null && t.months > monthsLeft
+              const isCurrent  = monthsLeft !== null && monthsLeft <= t.months && monthsLeft > (TIMELINE_GROUPS[i + 1]?.months ?? -1)
               return (
                 <div key={i} style={{ display: 'flex', gap: 18 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                     <div style={{ width: 13, height: 13, borderRadius: '50%', background: isCurrent ? '#C9A040' : isPast ? '#1a7a4a' : 'rgba(201,124,138,.3)', marginTop: 3, boxShadow: isCurrent ? '0 0 0 4px rgba(201,160,64,.15)' : 'none' }} />
-                    {i < TIMELINE_GROUPS.length - 1 && <div style={{ width: 2, flex: 1, background: 'rgba(201,124,138,.15)', minHeight: 24, marginTop: 4 }} />}
+                    {i < TIMELINE_GROUPS.length - 1 && <div style={{ width: 2, flex: 1, background: 'rgba(201,124,138,.12)', minHeight: 24, marginTop: 4 }} />}
                   </div>
                   <div style={{ paddingBottom: 24 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: isCurrent ? '#C9A040' : isPast ? '#1a7a4a' : '#C97C8A', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
@@ -649,18 +736,26 @@ export default function PlanningPage() {
       </div>
 
       {reviewVendor && (
-        <ReviewModal vendor={reviewVendor} momProfileId="" onClose={() => setReviewVendor(null)} onSubmitted={() => setReviewVendor(null)} />
+        <ReviewModal
+          vendor={reviewVendor}
+          momProfileId=""
+          onClose={() => setReviewVendor(null)}
+          onSubmitted={() => setReviewVendor(null)}
+        />
       )}
 
       <style>{`
+        /* Even 50/50 split on desktop */
         .planning-grid {
           display: grid;
-          grid-template-columns: 420px minmax(0,1fr);
+          grid-template-columns: 1fr 1fr;
           gap: 20px;
           align-items: start;
         }
-        @media (max-width: 960px) {
-          .planning-grid { grid-template-columns: 1fr !important; }
+        @media (max-width: 880px) {
+          .planning-grid {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
 
