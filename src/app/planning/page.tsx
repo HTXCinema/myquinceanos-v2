@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Nav from '@/components/layout/Nav'
 import Footer from '@/components/layout/Footer'
 import Link from 'next/link'
 import ReviewModal from '@/components/ReviewModal'
+import { createClient } from '@/lib/supabase'
 
 const VENDOR_CATEGORIES = [
   { id: 'venue',         label: 'Venue',            slug: 'venues',            month: 12 },
@@ -84,6 +85,14 @@ export default function PlanningPage() {
   const [newPayment, setNewPayment]       = useState({ vendor: '', label: 'Deposit', amount: '', due: '' })
   const [reviewVendor, setReviewVendor]   = useState<{ id: string; name: string; category: string } | null>(null)
   const [checklistFilter, setChecklistFilter] = useState<'all' | 'upcoming' | 'done'>('all')
+  const [isLoggedIn, setIsLoggedIn]       = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setIsLoggedIn(true)
+    })
+  }, [])
 
   const countdown   = daysBreakdown(form.date)
   const eventPassed = form.date ? new Date(form.date) < new Date() : false
@@ -194,13 +203,15 @@ export default function PlanningPage() {
     <>
       <Nav />
 
-      {/* GUEST BANNER */}
-      <div style={{ background: 'rgba(201,124,138,.07)', borderBottom: '0.5px solid rgba(201,124,138,.15)', padding: '8px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 12, color: '#7a5c65' }}>⚠ Guest mode — progress won't save if you leave.</span>
-        <Link href="/auth/signup" style={{ background: '#C97C8A', color: '#fff', padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
-          Create free account to save →
-        </Link>
-      </div>
+      {/* GUEST BANNER — only show when not logged in */}
+      {!isLoggedIn && (
+        <div style={{ background: 'rgba(201,124,138,.07)', borderBottom: '0.5px solid rgba(201,124,138,.15)', padding: '8px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 12, color: '#7a5c65' }}>⚠ Guest mode — progress won&apos;t save if you leave.</span>
+          <Link href="/auth/signup" style={{ background: '#C97C8A', color: '#fff', padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
+            Create free account to save →
+          </Link>
+        </div>
+      )}
 
       {/* COUNTDOWN BANNER */}
       {countdown && (
@@ -298,7 +309,7 @@ export default function PlanningPage() {
       </div>
 
       {/* PAGE BODY */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px', minWidth: 0, overflowX: 'hidden' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 80px', overflowX: 'hidden' }}>
 
         {/* ══════════════════════════════════════════
             CHECKLIST TAB
@@ -341,7 +352,7 @@ export default function PlanningPage() {
                         {groupCats.map(cat => {
                           const item = getCatItem(cat.id)
                           return (
-                            <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '0.5px solid rgba(201,124,138,.05)' }}>
+                            <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '0.5px solid rgba(201,124,138,.05)', overflow: 'hidden' }}>
                               {/* Checkbox */}
                               <button
                                 onClick={() => updateCat(cat.id, { booked: !item.booked })}
