@@ -156,7 +156,7 @@ export default function MomDashboard() {
     setPayments(l => l.map(x => x.id === p.id ? { ...x, is_paid: val } : x))
   }
 
-  async function addPaymentDue() {
+async function addPaymentDue() {
     if (!profile || !payForm.vendor || !payForm.amount || !payForm.due) return
     const { data } = await supabase.from('vendor_payments').insert({
       mom_profile_id: profile.id,
@@ -169,6 +169,7 @@ export default function MomDashboard() {
     setPayForm({ vendor: '', label: 'Deposit', amount: '', due: '' })
     setAddPayment(false)
   }
+
 
   // Derived
   const countdown    = profile?.event_date ? daysBreakdown(profile.event_date) : null
