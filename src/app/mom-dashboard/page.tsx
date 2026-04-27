@@ -628,7 +628,7 @@ export default function MomDashboard() {
                       <div style={{ fontSize: 12, color: '#7a5c65', marginTop: 1 }}>{p.payment_label}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: p.is_paid ? '#1a7a4a' : overdue ? '#E24B4A' : '#1a0a0f' }}>{fmt(p.amount_due)}</div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: p.is_paid ? '#1a7a4a' : overdue ? '#E24B4A' : '#1a0a0f' }}>{{fmt(p.amount_due ?? 0)}}</div>
                       <div style={{ fontSize: 11, color: overdue ? '#E24B4A' : '#7a5c65', marginTop: 1 }}>
                         {overdue ? '⚠ Overdue · ' : ''}{new Date(p.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
