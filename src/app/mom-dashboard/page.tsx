@@ -83,8 +83,8 @@ function MomProfileSetup({
     await supabase.from('mom_profiles').update({
       daughter_name: form.daughter.trim(),
       event_date:    form.date,
-      total_budget:  form.budget ? Number(form.budget) : null,
-      guest_count:   form.guests ? Number(form.guests) : null,
+      total_budget:  form.budget ? Number(form.budget) : undefined,
+      guest_count:   form.guests ? Number(form.guests) : undefined,
     }).eq('id', profile.id)
     onComplete()
   }
@@ -821,8 +821,8 @@ function EditProfileModal({
     await onSave({
       daughter_name: form.daughter,
       event_date:    form.date,
-      total_budget:  form.budget ? Number(form.budget) : null,
-      guest_count:   form.guests ? Number(form.guests) : null,
+      total_budget:  form.budget ? Number(form.budget) : undefined,
+      guest_count:   form.guests ? Number(form.guests) : undefined,
     })
   }
 
